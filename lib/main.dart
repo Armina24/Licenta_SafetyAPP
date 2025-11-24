@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'services/background_service.dart';
+
+import 'services/emergency_service.dart';
+import 'services/notification_service.dart';
 
 import 'start_page.dart';
 import 'login_page.dart';
@@ -12,13 +14,20 @@ import 'map_page.dart';
 import 'settings_page.dart';
 import 'contacts_page.dart';
 import 'profile_page.dart';
-
+import 'ui/sound_monitor_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Pornește service-ul de background (Android)
-  await AppBackgroundService.instance.initialize();
+  await NotificationService.instance.initialize(
+    onSelectNotification: (payload) async {
+      if (payload == NotificationService.offlineAlertPayload) {
+        await EmergencyService.instance.sendOfflineAlertManually();
+      }
+    },
+  );
+
+  await EmergencyService.instance.initialize();
 
   // Permisiunea SEND_SMS va fi cerută de canalul nativ la nevoie.
 
@@ -59,6 +68,7 @@ class MyApp extends StatelessWidget {
         '/settings': (_) => const SettingsPage(),
         '/contacts': (_) => const ContactsPage(),
         '/profile': (_) => const ProfilePage(),
+        '/soundMonitor': (_) => const SoundMonitorPage(),
       },
     );
   }

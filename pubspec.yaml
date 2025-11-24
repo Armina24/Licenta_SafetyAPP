@@ -57,6 +57,13 @@ dependencies:
 
   # eliminat telephony (vom folosi canal nativ Android pentru SMS)
   permission_handler: ^11.3.1
+  flutter_local_notifications: ^17.2.1
+
+  #pentru modelul audio de AI
+  flutter_audio_capture: ^1.1.11
+
+  tflite_flutter: ^0.12.1
+  
 
 
 dev_dependencies:
@@ -80,6 +87,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - assets/models/1.tflite
+    - assets/models/yamnet_class_map.csv
 
   # To add assets to your application, add an assets section, like this:
   # assets:

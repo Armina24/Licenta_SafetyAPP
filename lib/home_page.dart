@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'services/location_service.dart';
-import 'services/sms_service.dart';
+import 'services/emergency_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -16,6 +15,8 @@ class _HomePageState extends State<HomePage> {
   static const Color _orangeDark = Color(0xFFFF6B35);
 
   int _selectedIndex = 0;
+  bool _isSendingSos = false;
+  late final EmergencyService _emergencyService;
 
   void _onBottomNavTap(int index) {
     setState(() => _selectedIndex = index);
@@ -34,12 +35,77 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _onSosPressed() {
-    _sendSos();
-  }
-
   void _openSettingsSheet() {
     Navigator.pushNamed(context, '/settings');
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _emergencyService = EmergencyService.instance;
+    _emergencyService.backgroundEvents.addListener(_onBackgroundEvent);
+    // Consumă eventuale evenimente deja emise înainte de a fi construit widgetul.
+    _onBackgroundEvent();
+  }
+
+  @override
+  void dispose() {
+    _emergencyService.backgroundEvents.removeListener(_onBackgroundEvent);
+    super.dispose();
+  }
+
+  void _onBackgroundEvent() {
+    if (!mounted) return;
+    final event = _emergencyService.popBackgroundEvent();
+    if (event == null) return;
+
+    String? message;
+    switch (event.type) {
+      case EmergencyBackgroundEventType.offlineAlertSent:
+        message = event.message;
+        break;
+      case EmergencyBackgroundEventType.offlineAlertPartialFailure:
+        message = event.message;
+        break;
+      case EmergencyBackgroundEventType.offlineAlertFailed:
+        message = event.message;
+        break;
+      case EmergencyBackgroundEventType.noContacts:
+        message = 'Nu există contacte de urgență salvate pentru alertele automate.';
+        break;
+      case EmergencyBackgroundEventType.offlineAlertSkipped:
+        // Nu afișăm mesaj pentru skip, ca să evităm spam-ul.
+        break;
+      case EmergencyBackgroundEventType.offlineAlertRequested:
+        message =
+            'Ai rămas fără internet. Am trimis o notificare pentru a trimite manual SMS-ul de urgență.';
+        break;
+    }
+
+    if (message != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
+  }
+
+  Future<void> _sendSos() async {
+    if (_isSendingSos) return;
+    setState(() {
+      _isSendingSos = true;
+    });
+
+    final result = await _emergencyService.sendManualSos();
+
+    if (!mounted) return;
+
+    setState(() {
+      _isSendingSos = false;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(result.userMessage)),
+    );
   }
 
   @override
@@ -92,38 +158,67 @@ class _HomePageState extends State<HomePage> {
 
               // SOS BUTTON
               Center(
-                child: GestureDetector(
-                  onTap: _onSosPressed,
-                  child: Container(
-                    width: 160,
-                    height: 160,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: const LinearGradient(
-                        colors: [_orange, _orangeDark],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: _orangeDark.withValues(alpha: 0.35),
-                          blurRadius: 24,
-                          offset: const Offset(0, 12),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: _isSendingSos ? null : _sendSos,
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 200),
+                        opacity: _isSendingSos ? 0.7 : 1.0,
+                        child: Container(
+                          width: 160,
+                          height: 160,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: const LinearGradient(
+                              colors: [_orange, _orangeDark],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: _orangeDark.withValues(alpha: 0.35),
+                                blurRadius: 24,
+                                offset: const Offset(0, 12),
+                              ),
+                            ],
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'SOS',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 2,
+                              ),
+                            ),
+                          ),
                         ),
-                      ],
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'SOS',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 2,
-                        ),
                       ),
                     ),
-                  ),
+                    if (_isSendingSos)
+                      Container(
+                        width: 160,
+                        height: 160,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.black.withValues(alpha: 0.2),
+                        ),
+                        child: const Center(
+                          child: SizedBox(
+                            width: 48,
+                            height: 48,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 4,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
 
@@ -238,6 +333,20 @@ class _HomePageState extends State<HomePage> {
                         ],
                       ),
                       const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: _DashboardCard(
+                          title: 'Monitor sunete',
+                          subtitle: 'Detectează țipete, aglomerație, spargeri',
+                          icon: Icons.hearing_rounded,
+                          iconBackground:
+                              Colors.purple.withValues(alpha: 0.15),
+                          onTap: () {
+                            Navigator.pushNamed(context, '/soundMonitor');
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 12),
                     ],
                   ),
                 ),
@@ -268,49 +377,6 @@ class _HomePageState extends State<HomePage> {
             label: 'Profile',
           ),
         ],
-      ),
-    );
-  }
-}
-
-extension on _HomePageState {
-  Future<void> _sendSos() async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Sending SOS...')),
-    );
-    final position = await LocationService.instance.getCurrentPosition();
-    if (position == null) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Location unavailable')),
-      );
-      return;
-    }
-    final contacts = await SmsService.instance.loadEmergencyContacts();
-    if (contacts.isEmpty) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No emergency contacts configured')),
-      );
-      return;
-    }
-    final lat = position.latitude.toStringAsFixed(6);
-    final lon = position.longitude.toStringAsFixed(6);
-    final message =
-        'SOS! Am nevoie de ajutor. Locația mea: https://maps.google.com/?q=$lat,$lon';
-
-    // Trimite direct SMS în background (Android). Dacă vrei interactiv, folosește sendSms().
-    final sent = await SmsService.instance.sendSmsSilentlyToMultiple(
-      phoneNumbers: contacts,
-      message: message,
-    );
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(sent
-            ? 'SOS sent'
-            : 'SOS failed. Check SMS permission and balance.'),
       ),
     );
   }

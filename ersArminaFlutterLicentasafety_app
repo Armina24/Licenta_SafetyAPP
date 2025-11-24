@@ -1,0 +1,74 @@
+warning: in the working copy of 'pubspec.lock', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/pubspec.lock b/pubspec.lock[m
+[1mindex c3274f4..061a9ce 100644[m
+[1m--- a/pubspec.lock[m
+[1m+++ b/pubspec.lock[m
+[36m@@ -174,6 +174,30 @@[m [mpackages:[m
+       url: "https://pub.dev"[m
+     source: hosted[m
+     version: "5.0.0"[m
+[32m+[m[32m  flutter_local_notifications:[m
+[32m+[m[32m    dependency: "direct main"[m
+[32m+[m[32m    description:[m
+[32m+[m[32m      name: flutter_local_notifications[m
+[32m+[m[32m      sha256: "674173fd3c9eda9d4c8528da2ce0ea69f161577495a9cc835a2a4ecd7eadeb35"[m
+[32m+[m[32m      url: "https://pub.dev"[m
+[32m+[m[32m    source: hosted[m
+[32m+[m[32m    version: "17.2.4"[m
+[32m+[m[32m  flutter_local_notifications_linux:[m
+[32m+[m[32m    dependency: transitive[m
+[32m+[m[32m    description:[m
+[32m+[m[32m      name: flutter_local_notifications_linux[m
+[32m+[m[32m      sha256: c49bd06165cad9beeb79090b18cd1eb0296f4bf4b23b84426e37dd7c027fc3af[m
+[32m+[m[32m      url: "https://pub.dev"[m
+[32m+[m[32m    source: hosted[m
+[32m+[m[32m    version: "4.0.1"[m
+[32m+[m[32m  flutter_local_notifications_platform_interface:[m
+[32m+[m[32m    dependency: transitive[m
+[32m+[m[32m    description:[m
+[32m+[m[32m      name: flutter_local_notifications_platform_interface[m
+[32m+[m[32m      sha256: "85f8d07fe708c1bdcf45037f2c0109753b26ae077e9d9e899d55971711a4ea66"[m
+[32m+[m[32m      url: "https://pub.dev"[m
+[32m+[m[32m    source: hosted[m
+[32m+[m[32m    version: "7.2.0"[m
+   flutter_map:[m
+     dependency: "direct main"[m
+     description:[m
+[36m@@ -480,6 +504,14 @@[m [mpackages:[m
+       url: "https://pub.dev"[m
+     source: hosted[m
+     version: "2.1.0"[m
+[32m+[m[32m  quiver:[m
+[32m+[m[32m    dependency: transitive[m
+[32m+[m[32m    description:[m
+[32m+[m[32m      name: quiver[m
+[32m+[m[32m      sha256: ea0b925899e64ecdfbf9c7becb60d5b50e706ade44a85b2363be2a22d88117d2[m
+[32m+[m[32m      url: "https://pub.dev"[m
+[32m+[m[32m    source: hosted[m
+[32m+[m[32m    version: "3.2.2"[m
+   shared_preferences:[m
+     dependency: "direct main"[m
+     description:[m
+[36m@@ -589,6 +621,22 @@[m [mpackages:[m
+       url: "https://pub.dev"[m
+     source: hosted[m
+     version: "0.7.6"[m
+[32m+[m[32m  tflite_flutter:[m
+[32m+[m[32m    dependency: "direct main"[m
+[32m+[m[32m    description:[m
+[32m+[m[32m      name: tflite_flutter[m
+[32m+[m[32m      sha256: "0bba9040d8decda0960d7abf8eabf32243bf092bc7d0084e8e19681866b0bdbe"[m
+[32m+[m[32m      url: "https://pub.dev"[m
+[32m+[m[32m    source: hosted[m
+[32m+[m[32m    version: "0.12.1"[m
+[32m+[m[32m  timezone:[m
+[32m+[m[32m    dependency: transitive[m
+[32m+[m[32m    description:[m
+[32m+[m[32m      name: timezone[m
+[32m+[m[32m      sha256: "2236ec079a174ce07434e89fcd3fcda430025eb7692244139a9cf54fdcf1fc7d"[m
+[32m+[m[32m      url: "https://pub.dev"[m
+[32m+[m[32m    source: hosted[m
+[32m+[m[32m    version: "0.9.4"[m
+   typed_data:[m
+     dependency: transitive[m
+     description:[m

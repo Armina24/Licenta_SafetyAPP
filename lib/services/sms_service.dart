@@ -54,35 +54,82 @@ class SmsService {
     required String phoneNumber,
     required String message,
   }) async {
-    final ok = await ensureSmsPermission();
-    if (!ok) {
-      // opțional: deschide setările aplicației pentru a acorda permisiunea
-      // await openAppSettings();
-      return false;
-    }
-    try {
-      final result = await _channel.invokeMethod<bool>('sendSms', {
-        'to': phoneNumber,
-        'message': message,
-      });
-      return result ?? false;
-    } on PlatformException {
-      return false;
-    }
+    final report = await sendSmsSilentlyWithReport(
+      phoneNumbers: [phoneNumber],
+      message: message,
+    );
+    return report.allSent;
   }
 
   Future<bool> sendSmsSilentlyToMultiple({
     required List<String> phoneNumbers,
     required String message,
   }) async {
-    bool allSent = true;
+    final report = await sendSmsSilentlyWithReport(
+      phoneNumbers: phoneNumbers,
+      message: message,
+    );
+    return report.allSent;
+  }
+
+  Future<SmsSendReport> sendSmsSilentlyWithReport({
+    required List<String> phoneNumbers,
+    required String message,
+  }) async {
+    if (phoneNumbers.isEmpty) {
+      return SmsSendReport.empty(message: message);
+    }
+
+    final permissionGranted = await ensureSmsPermission();
+    if (!permissionGranted) {
+      return SmsSendReport.permissionDenied(
+        phoneNumbers: phoneNumbers,
+        message: message,
+      );
+    }
+
+    final successes = <String>[];
+    final failures = <SmsSendFailure>[];
+
     for (final number in phoneNumbers) {
-      final sent = await sendSmsSilently(phoneNumber: number, message: message);
-      if (!sent) {
-        allSent = false;
+      try {
+        final result = await _channel.invokeMethod<bool>('sendSms', {
+          'to': number,
+          'message': message,
+        });
+        final sent = result ?? false;
+        if (sent) {
+          successes.add(number);
+        } else {
+          failures.add(
+            SmsSendFailure(
+              phoneNumber: number,
+              reason: 'Eroare necunoscută la trimiterea SMS-ului.',
+            ),
+          );
+        }
+      } on PlatformException catch (error) {
+        failures.add(
+          SmsSendFailure(
+            phoneNumber: number,
+            reason: error.message ?? 'Eroare platformă la trimiterea SMS-ului.',
+          ),
+        );
+      } catch (error) {
+        failures.add(
+          SmsSendFailure(
+            phoneNumber: number,
+            reason: error.toString(),
+          ),
+        );
       }
     }
-    return allSent;
+
+    return SmsSendReport(
+      message: message,
+      successfullySent: successes,
+      failed: failures,
+    );
   }
 
   Future<List<String>> loadEmergencyContacts() async {
@@ -145,4 +192,54 @@ https://maps.google.com/?q=$latStr,$lonStr
       message: message,
     );
   }
+}
+
+class SmsSendReport {
+  final String message;
+  final List<String> successfullySent;
+  final List<SmsSendFailure> failed;
+
+  const SmsSendReport({
+    required this.message,
+    required this.successfullySent,
+    required this.failed,
+  });
+
+  factory SmsSendReport.empty({required String message}) => SmsSendReport(
+        message: message,
+        successfullySent: const [],
+        failed: const [],
+      );
+
+  factory SmsSendReport.permissionDenied({
+    required List<String> phoneNumbers,
+    required String message,
+  }) =>
+      SmsSendReport(
+        message: message,
+        successfullySent: const [],
+        failed: phoneNumbers
+            .map(
+              (number) => SmsSendFailure(
+                phoneNumber: number,
+                reason: 'Permisiunea SEND_SMS nu este acordată.',
+              ),
+            )
+            .toList(),
+      );
+
+  bool get allSent => failed.isEmpty && successfullySent.isNotEmpty;
+  bool get hasPartialSuccess =>
+      successfullySent.isNotEmpty && failed.isNotEmpty;
+  bool get noneSent => successfullySent.isEmpty;
+}
+
+class SmsSendFailure {
+  final String phoneNumber;
+  final String reason;
+
+  const SmsSendFailure({
+    required this.phoneNumber,
+    required this.reason,
+  });
 }
