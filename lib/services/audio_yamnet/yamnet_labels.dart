@@ -3,7 +3,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
-/// Loads the YAMNet class map CSV and exposes helpers for category lookups.
+
 class YamnetLabels {
   YamnetLabels._(this.indexToLabel, this.categoryToIndices);
 

@@ -63,6 +63,10 @@ dependencies:
   flutter_audio_capture: ^1.1.11
 
   tflite_flutter: ^0.12.1
+
+  #pentru shake function
+  shake: ^3.0.0
+  vibration: ^3.1.4
   
 
 

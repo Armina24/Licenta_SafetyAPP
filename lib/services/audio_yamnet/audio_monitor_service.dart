@@ -68,12 +68,14 @@ class AudioMonitorService {
   Future<void> startMonitoring({
     required void Function(SoundAlertResult) onAlert,
   }) async {
+    print('🎙 AudioMonitorService.startMonitoring() chemat (isMonitoring=$_isMonitoring)');
     if (_isMonitoring) return;
 
     // 1. permisiune microfon
-    final status = await Permission.microphone.request();
+    final status = await Permission.microphone.status;
     if (!status.isGranted) {
-      print('AudioMonitorService: microfon NEpermis.');
+      print('AudioMonitorService: microfon NEpermis.'
+        'Cere permisiunea din UI înainte de a porni monitorizarea.',);
       return;
     }
 

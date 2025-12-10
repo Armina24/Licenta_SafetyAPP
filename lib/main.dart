@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'services/emergency_service.dart';
 import 'services/notification_service.dart';
+import 'services/background_service.dart';
 
 import 'start_page.dart';
 import 'login_page.dart';
@@ -28,6 +29,8 @@ void main() async {
   );
 
   await EmergencyService.instance.initialize();
+
+  await AppBackgroundService.instance.initialize();  //pornim serviciul de background
 
   // Permisiunea SEND_SMS va fi cerută de canalul nativ la nevoie.
 

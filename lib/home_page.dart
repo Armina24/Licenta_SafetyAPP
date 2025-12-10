@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'services/emergency_service.dart';
+import 'package:shake/shake.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,6 +14,8 @@ class _HomePageState extends State<HomePage> {
   static const Color _bgColor = Color(0xFFFFF8F2);
   static const Color _orange = Color(0xFFFF8C42);
   static const Color _orangeDark = Color(0xFFFF6B35);
+
+  String _lastShakeInfo = 'No shake detected yet';
 
   int _selectedIndex = 0;
   bool _isSendingSos = false;
@@ -46,7 +49,52 @@ class _HomePageState extends State<HomePage> {
     _emergencyService.backgroundEvents.addListener(_onBackgroundEvent);
     // Consumă eventuale evenimente deja emise înainte de a fi construit widgetul.
     _onBackgroundEvent();
+    //_startDetector();
+
+    ShakeDetector.autoStart(
+      onPhoneShake: (ShakeEvent event) {
+        print("SHAKE DETECTAT!");
+        setState(() {
+          _lastShakeInfo = 'Shake detected:\n'
+              'Time: ${event.timestamp.toString()}';
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ai scuturat telefonul!')),
+        );
+      },
+      minimumShakeCount: 3,
+      shakeSlopTimeMS: 500,
+      shakeCountResetTime: 3000,
+      shakeThresholdGravity: 2.7,
+      useFilter: false,
+    );
   }
+
+  /*ShakeDetector? _detector;
+  void _startDetector() {
+    // Stop previous detector if exists
+    _detector?.stopListening();
+    
+    _detector=ShakeDetector.autoStart(
+      onPhoneShake: () {
+        print("SHAKE DETECTAT!");
+        setState(() {
+          _lastShakeInfo = 'Shake detected:\n'
+              'Time: ${event.timestamp.toString()}';
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ai scuturat telefonul!')),
+        );
+      },
+      minimumShakeCount: 1,
+      shakeSlopTimeMS: 500,
+      shakeCountResetTime: 3000,
+      shakeThresholdGravity: 2.7,
+      useFilter: false,
+    );
+  }*/
 
   @override
   void dispose() {
