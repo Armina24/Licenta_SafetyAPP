@@ -26,7 +26,7 @@ app.use('/auth', authRouter);
 ensureTables()
   .then(() => {
     app.listen(config.port, () => {
-      console.log(`API listening on http://localhost:${config.port}`);
+      console.log(`API listening on http://0.0.0.0:${config.port}`);
     });
   })
   .catch((err) => {

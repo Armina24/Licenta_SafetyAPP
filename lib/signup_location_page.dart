@@ -45,7 +45,9 @@ class _SignupLocationPageState extends State<SignupLocationPage> {
     }
   }
   return;
-} catch (_) {
+} catch (e, stackTrace) {
+  debugPrint("Eroare la înregistrare: $e"); // <--- Printează eroarea în consolă
+  debugPrint("Stack trace: $stackTrace");
   if (mounted) {  // Check if the widget is still in the tree
     setState(() => _isFinishing = false);
     ScaffoldMessenger.of(context).showSnackBar(
