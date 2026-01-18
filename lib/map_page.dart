@@ -6,6 +6,8 @@ import 'package:latlong2/latlong.dart';
 import 'services/location_service.dart';
 import 'services/connectivity_service.dart';
 import 'services/sms_service.dart';
+import 'ui/scaffold_wrapper.dart';
+import 'config/app_theme.dart';
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -100,16 +102,108 @@ class _MapPageState extends State<MapPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
+    final textColor = isDarkMode ? AppTheme.textPrimary : const Color(0xFF1F1F1F);
 
     if (_currentLatLng == null) {
-      return Scaffold(
+      final loadingScaffold = Scaffold(
         appBar: AppBar(
           title: const Text('Map'),
-          backgroundColor: colorScheme.primary,
-          foregroundColor: Colors.white,
+          backgroundColor: isDarkMode ? Colors.transparent : colorScheme.primary,
+          foregroundColor: isDarkMode ? AppTheme.textPrimary : Colors.white,
         ),
         body: const Center(child: CircularProgressIndicator()),
+      );
+
+      if (isDarkMode) {
+        return ScaffoldWrapper(
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            title: const Text('Map'),
+          ),
+          body: const Center(child: CircularProgressIndicator()),
+        );
+      }
+      return loadingScaffold;
+    }
+
+    final mapContent = Column(
+      children: [
+        if (!_hasInternet)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(8),
+            color: isDarkMode
+                ? AppTheme.accentOrange.withOpacity(0.2)
+                : Colors.orange.withValues(alpha: 0.1),
+            child: Text(
+              'Nu există conexiune la internet. Harta poate să nu se actualizeze, '
+              'dar funcțiile de siguranță rămân active.\n'
+              'Un SMS cu ultima locație poate fi trimis către contactele tale.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: textColor),
+            ),
+          ),
+        Expanded(
+          child: FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: _currentLatLng!,
+              initialZoom: 15,
+              maxZoom: 18,
+              minZoom: 3,
+            ),
+            children: [
+              TileLayer(
+                urlTemplate:
+                    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                subdomains: const ['a', 'b', 'c'],
+              ),
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    point: _currentLatLng!,
+                    width: 60,
+                    height: 60,
+                    child: Icon(
+                      Icons.location_pin,
+                      color: AppTheme.accentTeal,
+                      size: 48,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size.fromHeight(48),
+              backgroundColor: AppTheme.accentBlue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            onPressed: _sendLocationSms,
+            icon: const Icon(Icons.sms),
+            label: const Text('Trimite locația mea prin SMS'),
+          ),
+        ),
+      ],
+    );
+
+    if (isDarkMode) {
+      return ScaffoldWrapper(
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          title: const Text('Map'),
+        ),
+        body: mapContent,
       );
     }
 
@@ -119,71 +213,7 @@ class _MapPageState extends State<MapPage> {
         backgroundColor: colorScheme.primary,
         foregroundColor: Colors.white,
       ),
-      body: Column(
-        children: [
-          if (!_hasInternet)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(8),
-              color: Colors.orange.withValues(alpha: 0.1),
-              child: const Text(
-                'Nu există conexiune la internet. Harta poate să nu se actualizeze, '
-                'dar funcțiile de siguranță rămân active.\n'
-                'Un SMS cu ultima locație poate fi trimis către contactele tale.',
-                textAlign: TextAlign.center,
-              ),
-            ),
-          Expanded(
-            child: FlutterMap(
-              mapController: _mapController,
-              options: MapOptions(
-                initialCenter: _currentLatLng!,
-                initialZoom: 15,
-                maxZoom: 18,
-                minZoom: 3,
-              ),
-              children: [
-                TileLayer(
-                  urlTemplate:
-                      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  subdomains: const ['a', 'b', 'c'],
-                ),
-                MarkerLayer(
-                  markers: [
-                    Marker(
-                      point: _currentLatLng!,
-                      width: 60,
-                      height: 60,
-                      child: Icon(
-                        Icons.location_pin,
-                        color: colorScheme.primary,
-                        size: 48,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(48),
-                backgroundColor: colorScheme.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-              onPressed: _sendLocationSms,
-              icon: const Icon(Icons.sms),
-              label: const Text('Trimite locația mea prin SMS'),
-            ),
-          ),
-        ],
-      ),
+      body: mapContent,
     );
   }
 }

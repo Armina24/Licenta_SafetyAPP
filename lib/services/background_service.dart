@@ -7,14 +7,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_background_service_android/flutter_background_service_android.dart';
+// Removed unnecessary android-specific import; use types from flutter_background_service
 
 import 'location_service.dart';
 import 'sms_service.dart';
 import 'audio_yamnet/audio_monitor_service.dart';
-import 'package:shake/shake.dart';
-import 'package:vibration/vibration.dart';
 
+@pragma('vm:entry-point') // Needed so native background entry can find the class in AOT
 class AppBackgroundService {
   AppBackgroundService._internal();
   static final AppBackgroundService instance = AppBackgroundService._internal();
@@ -32,7 +31,7 @@ class AppBackgroundService {
     final wasRunning = await service.isRunning();
     if(wasRunning)
     {
-      print('⚠️ [BG] Exista deja un service vechi, il opresc...');
+      debugPrint('⚠️ [BG] Exista deja un service vechi, il opresc...');
       //await service.invoke('stopService');
       
       await Future.delayed(const Duration(seconds: 1));
@@ -55,7 +54,7 @@ class AppBackgroundService {
 
   @pragma('vm:entry-point')
   static Future<void> _onStart(ServiceInstance service) async {
-    print('🔵 [BG] _onStart pornit (background service a început).');
+    debugPrint('🔵 [BG] _onStart pornit (background service a început).');
     if (service is AndroidServiceInstance) {
       service.setAsForegroundService();
     }
@@ -84,13 +83,13 @@ class AppBackgroundService {
 
     //UI da start la audio
     service.on('startAudio').listen((event) async {
-      print('🟢 [BG] startAudio primit – pornesc AudioMonitorService în background.');
+      debugPrint('🟢 [BG] startAudio primit – pornesc AudioMonitorService în background.');
       if (audioMonitoring) return;
 
       audioMonitoring = true;
 
       await AudioMonitorService.instance.startMonitoring(onAlert: (result){
-        print('🚨 [BG] ALERTĂ AUDIO: $result');
+        debugPrint('🚨 [BG] ALERTĂ AUDIO: $result');
         
         if (service is AndroidServiceInstance) {
           service.setForegroundNotificationInfo(
@@ -100,13 +99,13 @@ class AppBackgroundService {
         }
         //aici pot declansa SMS, notificari, etc.
 
-        print('BACKGROUND ALERT AUDIO: $result');
+        debugPrint('BACKGROUND ALERT AUDIO: $result');
       });
     });
 
     //UI da stop la audio
     service.on('stopAudio').listen((event) async {
-      print('🛑 [BG] stopAudio primit – opresc AudioMonitorService.');
+      debugPrint('🛑 [BG] stopAudio primit – opresc AudioMonitorService.');
       if(!audioMonitoring) return;
       audioMonitoring = false;
       await AudioMonitorService.instance.stopMonitoring();

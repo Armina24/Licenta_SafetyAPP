@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'services/emergency_service.dart';
 import 'services/notification_service.dart';
 import 'services/background_service.dart';
+import 'services/alert_manager.dart';
+import 'config/app_theme.dart';
 
 import 'start_page.dart';
 import 'login_page.dart';
@@ -16,6 +18,8 @@ import 'settings_page.dart';
 import 'contacts_page.dart';
 import 'profile_page.dart';
 import 'ui/sound_monitor_page.dart';
+import 'ui/safety_timer_page.dart';
+import 'ui/recordings_viewer_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,26 +34,59 @@ void main() async {
 
   await EmergencyService.instance.initialize();
 
+  await AlertManager.instance.initialize(
+    onSendSos: () async {
+      await EmergencyService.instance.sendManualSos();
+    },
+  );
+
   await AppBackgroundService.instance.initialize();  //pornim serviciul de background
 
   // Permisiunea SEND_SMS va fi cerută de canalul nativ la nevoie.
 
   final prefs = await SharedPreferences.getInstance();
   final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+  final isDarkMode = prefs.getBool('isDarkMode') ?? false;
 
-  runApp(MyApp(isLoggedIn: isLoggedIn));
+  runApp(MyApp(isLoggedIn: isLoggedIn, isDarkMode: isDarkMode));
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   final bool isLoggedIn;
+  final bool isDarkMode;
 
-  const MyApp({super.key, required this.isLoggedIn});
+  const MyApp({super.key, required this.isLoggedIn, required this.isDarkMode});
+
+  static final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    MyApp.themeNotifier.value = widget.isDarkMode ? ThemeMode.dark : ThemeMode.light;
+    MyApp.themeNotifier.addListener(_onThemeChanged);
+  }
+
+  @override
+  void dispose() {
+    MyApp.themeNotifier.removeListener(_onThemeChanged);
+    super.dispose();
+  }
+
+  void _onThemeChanged() {
+    setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Safety App',
+      themeMode: MyApp.themeNotifier.value,
       theme: ThemeData(
         useMaterial3: true,
         fontFamily: 'Roboto',
@@ -59,7 +96,8 @@ class MyApp extends StatelessWidget {
           brightness: Brightness.light,
         ),
       ),
-      initialRoute: isLoggedIn ? '/home' : '/start',
+      darkTheme: AppTheme.darkTheme(),
+      initialRoute: widget.isLoggedIn ? '/home' : '/start',
       routes: {
         '/start': (_) => const StartPage(),
         '/login': (_) => const LoginPage(),
@@ -72,6 +110,8 @@ class MyApp extends StatelessWidget {
         '/contacts': (_) => const ContactsPage(),
         '/profile': (_) => const ProfilePage(),
         '/soundMonitor': (_) => const SoundMonitorPage(),
+        '/safetyTimer': (_) => const SafetyTimerPage(),
+        '/recordings': (_) => const RecordingsViewerPage(),
       },
     );
   }

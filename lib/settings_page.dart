@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'services/auth_service.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'main.dart';
+import 'ui/scaffold_wrapper.dart';
+import 'config/app_theme.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -17,6 +20,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _locationEnabled = false;
   bool _smsEnabled = false;
   bool _notificationsEnabled = true;
+  bool _isDarkMode = false;
   String? _userEmail;
 
   @override
@@ -30,6 +34,7 @@ class _SettingsPageState extends State<SettingsPage> {
     setState(() {
       _userEmail = prefs.getString('userEmail');
       _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
+      _isDarkMode = prefs.getBool('isDarkMode') ?? false;
     });
 
     // Check location permission
@@ -132,7 +137,15 @@ class _SettingsPageState extends State<SettingsPage> {
     await prefs.setBool('notifications_enabled', _notificationsEnabled);
   }
 
-  Future<void> _logout() async {
+  Future<void> _toggleDarkMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() => _isDarkMode = !_isDarkMode);
+    await prefs.setBool('isDarkMode', _isDarkMode);
+    // Update app theme using the ValueNotifier
+    MyApp.themeNotifier.value = _isDarkMode ? ThemeMode.dark : ThemeMode.light;
+  }
+
+  Future<void> _logout() async{
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -160,15 +173,25 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _bgColor,
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final appBarBgColor = isDarkMode ? Colors.transparent : _bgColor;
+    final titleColor = isDarkMode ? AppTheme.textPrimary : const Color(0xFF1F1F1F);
+
+    final scaffoldContent = Scaffold(
+      backgroundColor: isDarkMode ? Colors.transparent : _bgColor,
       appBar: AppBar(
-        backgroundColor: _bgColor,
+        backgroundColor: appBarBgColor,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF1F1F1F)),
-        title: const Text(
+        iconTheme: IconThemeData(
+          color: isDarkMode ? AppTheme.textPrimary : const Color(0xFF1F1F1F),
+        ),
+        title: Text(
           'Settings',
-          style: TextStyle(color: Color(0xFF1F1F1F)),
+          style: TextStyle(
+            color: titleColor,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         centerTitle: true,
       ),
@@ -209,6 +232,22 @@ class _SettingsPageState extends State<SettingsPage> {
               trailing: Switch(
                 value: _smsEnabled,
                 onChanged: (_) => _toggleSms(),
+                activeThumbColor: _orange,
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // Appearance Section
+            _SectionHeader(title: 'Appearance'),
+            _SettingsTile(
+              leading: const Icon(Icons.dark_mode_outlined),
+              title: 'Dark Mode',
+              subtitle: _isDarkMode
+                  ? 'Dark theme enabled'
+                  : 'Light theme enabled',
+              trailing: Switch(
+                value: _isDarkMode,
+                onChanged: (_) => _toggleDarkMode(),
                 activeThumbColor: _orange,
               ),
             ),
@@ -283,6 +322,140 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       ),
     );
+
+    if (isDarkMode) {
+      return ScaffoldWrapper(
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: AppTheme.textPrimary),
+          title: const Text(
+            'Settings',
+            style: TextStyle(
+              color: AppTheme.textPrimary,
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          centerTitle: true,
+        ),
+        body: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            children: [
+              // Account Section
+              _SectionHeader(title: 'Account'),
+              _SettingsTile(
+                leading: Icon(Icons.email_outlined, color: AppTheme.textSecondary),
+                title: 'Email',
+                subtitle: _userEmail ?? 'Not available',
+                trailing: null,
+              ),
+              const SizedBox(height: 8),
+              // Permissions Section
+              _SectionHeader(title: 'Permissions'),
+              _SettingsTile(
+                leading: Icon(Icons.location_on_outlined, color: AppTheme.accentTeal),
+                title: 'Location Access',
+                subtitle: _locationEnabled ? 'Enabled' : 'Required for SOS alerts',
+                trailing: Switch(
+                  value: _locationEnabled,
+                  onChanged: (_) => _toggleLocation(),
+                  activeThumbColor: AppTheme.accentOrange,
+                ),
+              ),
+              _SettingsTile(
+                leading: Icon(Icons.sms_outlined, color: AppTheme.accentBlue),
+                title: 'SMS Access',
+                subtitle: _smsEnabled ? 'Enabled' : 'Required to send alerts',
+                trailing: Switch(
+                  value: _smsEnabled,
+                  onChanged: (_) => _toggleSms(),
+                  activeThumbColor: AppTheme.accentOrange,
+                ),
+              ),
+              const SizedBox(height: 8),
+              // Appearance Section
+              _SectionHeader(title: 'Appearance'),
+              _SettingsTile(
+                leading: Icon(Icons.dark_mode_outlined, color: AppTheme.accentPurple),
+                title: 'Dark Mode',
+                subtitle: _isDarkMode ? 'Dark theme enabled' : 'Light theme enabled',
+                trailing: Switch(
+                  value: _isDarkMode,
+                  onChanged: (_) => _toggleDarkMode(),
+                  activeThumbColor: AppTheme.accentOrange,
+                ),
+              ),
+              const SizedBox(height: 8),
+              // Notifications Section
+              _SectionHeader(title: 'Notifications'),
+              _SettingsTile(
+                leading: Icon(Icons.notifications_outlined, color: AppTheme.accentGreen),
+                title: 'Push Notifications',
+                subtitle: _notificationsEnabled ? 'Enabled' : 'Disabled',
+                trailing: Switch(
+                  value: _notificationsEnabled,
+                  onChanged: (_) => _toggleNotifications(),
+                  activeThumbColor: AppTheme.accentOrange,
+                ),
+              ),
+              const SizedBox(height: 8),
+              // About Section
+              _SectionHeader(title: 'About'),
+              _SettingsTile(
+                leading: Icon(Icons.info_outline, color: AppTheme.textSecondary),
+                title: 'App Version',
+                subtitle: '1.0.0',
+                trailing: null,
+              ),
+              _SettingsTile(
+                leading: Icon(Icons.privacy_tip_outlined, color: AppTheme.textSecondary),
+                title: 'Privacy Policy',
+                subtitle: 'View our privacy policy',
+                trailing: const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Privacy Policy coming soon')),
+                  );
+                },
+              ),
+              _SettingsTile(
+                leading: Icon(Icons.description_outlined, color: AppTheme.textSecondary),
+                title: 'Terms of Service',
+                subtitle: 'View terms and conditions',
+                trailing: const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Terms of Service coming soon')),
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
+              // Logout
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ElevatedButton(
+                  onPressed: _logout,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.accentRed,
+                    foregroundColor: AppTheme.textPrimary,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                  ),
+                  child: const Text('Log out'),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return scaffoldContent;
   }
 }
 
@@ -293,14 +466,16 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: Color(0xFF777777),
+          color: isDarkMode ? AppTheme.textTertiary : const Color(0xFF777777),
           letterSpacing: 0.5,
         ),
       ),
@@ -325,27 +500,38 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      elevation: 0,
+      elevation: isDarkMode ? 8 : 0,
+      color: isDarkMode
+          ? AppTheme.glassDarkMedium
+          : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
+        side: BorderSide(
+          color: isDarkMode
+              ? AppTheme.glassBorder
+              : Colors.grey.withValues(alpha: 0.1),
+          width: 1,
+        ),
       ),
       child: ListTile(
         leading: leading,
         title: Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w500,
             fontSize: 15,
+            color: isDarkMode ? AppTheme.textPrimary : const Color(0xFF1F1F1F),
           ),
         ),
         subtitle: Text(
           subtitle,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
-            color: Color(0xFF777777),
+            color: isDarkMode ? AppTheme.textSecondary : const Color(0xFF777777),
           ),
         ),
         trailing: trailing,

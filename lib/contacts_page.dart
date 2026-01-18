@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'ui/scaffold_wrapper.dart';
+import 'config/app_theme.dart';
 
 class ContactsPage extends StatefulWidget {
   const ContactsPage({super.key});
@@ -126,106 +128,145 @@ class _ContactsPageState extends State<ContactsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        backgroundColor: _bgColor,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF1F1F1F)),
-        title: const Text(
-          'Emergency Contacts',
-          style: TextStyle(color: Color(0xFF1F1F1F)),
-        ),
-        centerTitle: true,
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDarkMode ? Colors.transparent : _bgColor;
+    final titleColor = isDarkMode ? AppTheme.textPrimary : const Color(0xFF1F1F1F);
+    final secondaryText = isDarkMode ? AppTheme.textSecondary : Colors.grey.withValues(alpha: 0.7);
+    final subtleText = isDarkMode ? AppTheme.textTertiary : Colors.grey.withValues(alpha: 0.6);
+
+    final appBar = AppBar(
+      backgroundColor: isDarkMode ? Colors.transparent : _bgColor,
+      elevation: 0,
+      iconTheme: IconThemeData(color: titleColor),
+      title: Text(
+        'Emergency Contacts',
+        style: TextStyle(color: titleColor),
       ),
-      body: SafeArea(
-        child: _contacts.isEmpty
-            ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.contacts_outlined,
-                      size: 64,
-                      color: Colors.grey.withValues(alpha: 0.5),
+      centerTitle: true,
+    );
+
+    final body = SafeArea(
+      child: _contacts.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.contacts_outlined,
+                    size: 64,
+                    color: isDarkMode
+                        ? AppTheme.textTertiary.withOpacity(0.5)
+                        : Colors.grey.withValues(alpha: 0.5),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No emergency contacts',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: secondaryText,
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No emergency contacts',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.grey.withValues(alpha: 0.7),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Add trusted contacts to receive\nSOS alerts',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: subtleText,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              itemCount: _contacts.length,
+              itemBuilder: (context, index) {
+                final contact = _contacts[index];
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 6),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: isDarkMode
+                          ? AppTheme.glassBorder
+                          : Colors.grey.withValues(alpha: 0.1),
+                    ),
+                  ),
+                  color: isDarkMode ? AppTheme.glassDarkMedium : Colors.white,
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: AppTheme.accentOrange.withOpacity(0.2),
+                      child: Text(
+                        contact['name']![0].toUpperCase(),
+                        style: const TextStyle(
+                          color: AppTheme.accentOrange,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Add trusted contacts to receive\nSOS alerts',
-                      textAlign: TextAlign.center,
+                    title: Text(
+                      contact['name']!,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 16,
+                        color: titleColor,
+                      ),
+                    ),
+                    subtitle: Text(
+                      contact['phone']!,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.withValues(alpha: 0.6),
+                        color: secondaryText,
                       ),
                     ),
-                  ],
-                ),
-              )
-            : ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                itemCount: _contacts.length,
-                itemBuilder: (context, index) {
-                  final contact = _contacts[index];
-                  return Card(
-                    margin: const EdgeInsets.symmetric(vertical: 6),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            Icons.edit_outlined,
+                            color: isDarkMode
+                                ? AppTheme.accentBlue
+                                : Colors.grey.withValues(alpha: 0.7),
+                          ),
+                          onPressed: () => _editContact(index),
+                          tooltip: 'Edit',
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.redAccent,
+                          ),
+                          onPressed: () => _deleteContact(index),
+                          tooltip: 'Delete',
+                        ),
+                      ],
                     ),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: _orange.withValues(alpha: 0.2),
-                        child: Text(
-                          contact['name']![0].toUpperCase(),
-                          style: TextStyle(
-                            color: _orange,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      title: Text(
-                        contact['name']!,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 16,
-                        ),
-                      ),
-                      subtitle: Text(
-                        contact['phone']!,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF777777),
-                        ),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit_outlined),
-                            onPressed: () => _editContact(index),
-                            tooltip: 'Edit',
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                            onPressed: () => _deleteContact(index),
-                            tooltip: 'Delete',
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-      ),
+                  ),
+                );
+              },
+            ),
+    );
+
+    if (isDarkMode) {
+      return ScaffoldWrapper(
+        appBar: appBar,
+        body: body,
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: _addContact,
+          backgroundColor: AppTheme.accentOrange,
+          icon: const Icon(Icons.add),
+          label: const Text('Add Contact'),
+        ),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: bgColor,
+      appBar: appBar,
+      body: body,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _addContact,
         backgroundColor: _orange,

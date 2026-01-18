@@ -1,4 +1,4 @@
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 
 import 'package:flutter_audio_capture/flutter_audio_capture.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -68,13 +68,13 @@ class AudioMonitorService {
   Future<void> startMonitoring({
     required void Function(SoundAlertResult) onAlert,
   }) async {
-    print('🎙 AudioMonitorService.startMonitoring() chemat (isMonitoring=$_isMonitoring)');
+    debugPrint('🎙 AudioMonitorService.startMonitoring() chemat (isMonitoring=$_isMonitoring)');
     if (_isMonitoring) return;
 
     // 1. permisiune microfon
     final status = await Permission.microphone.status;
     if (!status.isGranted) {
-      print('AudioMonitorService: microfon NEpermis.'
+      debugPrint('AudioMonitorService: microfon NEpermis.'
         'Cere permisiunea din UI înainte de a porni monitorizarea.',);
       return;
     }
@@ -86,13 +86,13 @@ class AudioMonitorService {
     if (!_audioInitialized) {
       await _plugin.init();
       _audioInitialized = true;
-      print('AudioMonitorService: flutter_audio_capture INIT done.');
+      debugPrint('AudioMonitorService: flutter_audio_capture INIT done.');
     }
 
     _onAlert = onAlert;
     _isMonitoring = true;
 
-    print('AudioMonitorService: START (flutter_audio_capture).');
+    debugPrint('AudioMonitorService: START (flutter_audio_capture).');
 
     await _plugin.start(
       _audioListener,
@@ -112,7 +112,7 @@ class AudioMonitorService {
     _crowdCounter = 0;
     _glassCounter = 0;
 
-    print('AudioMonitorService: STOP.');
+    debugPrint('AudioMonitorService: STOP.');
   }
 
   /// Listener-ul chemat de flutter_audio_capture pentru fiecare chunk.
@@ -137,7 +137,7 @@ class AudioMonitorService {
   }
 
   void _onError(Object e) {
-    print('AudioMonitorService: eroare din flutter_audio_capture: $e');
+    debugPrint('AudioMonitorService: eroare din flutter_audio_capture: $e');
   }
 
   /// Rulează YAMNet pe o fereastră și verifică pragurile.
@@ -181,7 +181,7 @@ class AudioMonitorService {
     );
 
     // pur debug, poți comenta dacă e spam:
-    print('AudioMonitorService frame -> $result');
+    debugPrint('AudioMonitorService frame -> $result');
 
     if ((isScream || isCrowd || isGlass) && _onAlert != null) {
       _onAlert!(result);

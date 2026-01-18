@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
@@ -96,7 +95,7 @@ class YamnetService {
         maxIndex = i;
       }
     }
-    print(
+    debugPrint(
       "YAMNet: maxScore=$maxScore | index=$maxIndex | label=${_labels?.indexToLabel[maxIndex]}",
     );
 

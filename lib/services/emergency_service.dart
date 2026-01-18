@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
+import 'black_box_recorder_service.dart';
 import 'connectivity_service.dart';
 import 'location_service.dart';
 import 'notification_service.dart';
@@ -15,6 +16,8 @@ class EmergencyService {
   final SmsService _smsService = SmsService.instance;
   final ConnectivityService _connectivityService =
       ConnectivityService.instance;
+  final BlackBoxRecorderService _blackBoxRecorder =
+      BlackBoxRecorderService.instance;
 
   final Duration offlineThrottle = const Duration(minutes: 30);
 
@@ -31,6 +34,10 @@ class EmergencyService {
 
   Future<void> initialize() async {
     if (_initialized) return;
+    
+    // Initialize black box recorder
+    await _blackBoxRecorder.initialize();
+    
     _lastHadInternet = await _connectivityService.hasInternetNow();
     _connectivitySubscription =
         _connectivityService.onConnectivityChanged.listen(
@@ -44,6 +51,10 @@ class EmergencyService {
   Future<void> dispose() async {
     await _connectivitySubscription?.cancel();
     _connectivitySubscription = null;
+    
+    // Stop any active black box recording
+    await _blackBoxRecorder.stopRecording();
+    
     _initialized = false;
   }
 
@@ -56,6 +67,12 @@ class EmergencyService {
   }
 
   Future<EmergencyActionResult> sendManualSos() async {
+    // Start black box recording in background (non-blocking)
+    _blackBoxRecorder.startRecording(
+      recordingDuration: const Duration(minutes: 5),
+      snapshotInterval: const Duration(seconds: 3),
+    );
+
     final contacts = await _smsService.loadEmergencyContacts();
     if (contacts.isEmpty) {
       return const EmergencyActionResult(
