@@ -5,6 +5,7 @@ import 'services/emergency_service.dart';
 import 'services/notification_service.dart';
 import 'services/background_service.dart';
 import 'services/alert_manager.dart';
+import 'services/safety_timer_service.dart';
 import 'config/app_theme.dart';
 
 import 'start_page.dart';
@@ -37,6 +38,22 @@ void main() async {
   await AlertManager.instance.initialize(
     onSendSos: () async {
       await EmergencyService.instance.sendManualSos();
+    },
+    onTimerAction: (actionId) async {
+      // Handle timer notification actions
+      if (actionId == 'action_timer_stop') {
+        await SafetyTimerService.instance.stopTimer();
+        debugPrint('🛡️ Timer stopped via notification action');
+      } else if (actionId == 'action_timer_add5') {
+        await SafetyTimerService.instance.extendTimer(const Duration(minutes: 5));
+        debugPrint('⏱️ Timer extended by 5 minutes via notification');
+      } else if (actionId == 'action_timer_add15') {
+        await SafetyTimerService.instance.extendTimer(const Duration(minutes: 15));
+        debugPrint('⏱️ Timer extended by 15 minutes via notification');
+      } else if (actionId == 'action_timer_add30') {
+        await SafetyTimerService.instance.extendTimer(const Duration(minutes: 30));
+        debugPrint('⏱️ Timer extended by 30 minutes via notification');
+      }
     },
   );
 

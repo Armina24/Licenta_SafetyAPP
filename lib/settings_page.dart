@@ -4,6 +4,8 @@ import 'services/auth_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'main.dart';
 import 'ui/scaffold_wrapper.dart';
+import 'ui/privacy_policy_screen.dart';
+import 'ui/terms_of_service_screen.dart';
 import 'config/app_theme.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -283,8 +285,11 @@ class _SettingsPageState extends State<SettingsPage> {
               subtitle: 'View our privacy policy',
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Privacy Policy coming soon')),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PrivacyPolicyScreen(),
+                  ),
                 );
               },
             ),
@@ -294,8 +299,11 @@ class _SettingsPageState extends State<SettingsPage> {
               subtitle: 'View terms and conditions',
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Terms of Service coming soon')),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const TermsOfServiceScreen(),
+                  ),
                 );
               },
             ),
@@ -415,8 +423,11 @@ class _SettingsPageState extends State<SettingsPage> {
                 subtitle: 'View our privacy policy',
                 trailing: const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Privacy Policy coming soon')),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PrivacyPolicyScreen(),
+                    ),
                   );
                 },
               ),
@@ -426,8 +437,11 @@ class _SettingsPageState extends State<SettingsPage> {
                 subtitle: 'View terms and conditions',
                 trailing: const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Terms of Service coming soon')),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const TermsOfServiceScreen(),
+                    ),
                   );
                 },
               ),

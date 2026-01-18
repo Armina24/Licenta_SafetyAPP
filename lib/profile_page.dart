@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:io';
 import 'services/auth_service.dart';
 import 'ui/scaffold_wrapper.dart';
+import 'ui/account_info_screen.dart';
 import 'config/app_theme.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -16,22 +20,37 @@ class _ProfilePageState extends State<ProfilePage> {
   static const Color _orange = Color(0xFFFF8C42);
 
   String? _userEmail;
+  String? _fullName;
+  String? _profileImagePath;
   Map<String, dynamic>? _userData;
   bool _isLoading = true;
+  late TextEditingController _nameEditController;
 
   @override
   void initState() {
     super.initState();
+    _nameEditController = TextEditingController();
     _loadProfile();
+  }
+
+  @override
+  void dispose() {
+    _nameEditController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadProfile() async {
     final prefs = await SharedPreferences.getInstance();
     final email = prefs.getString('userEmail');
+    final fullName = prefs.getString('fullName');
+    final imagePath = prefs.getString('profileImagePath');
     
     if (!mounted) return;
     setState(() {
       _userEmail = email;
+      _fullName = fullName;
+      _profileImagePath = imagePath;
+      _nameEditController.text = fullName ?? '';
     });
 
     try {
@@ -47,6 +66,221 @@ class _ProfilePageState extends State<ProfilePage> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _deleteProfilePicture() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Profile Picture'),
+        content: const Text('Are you sure you want to delete your profile picture?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm ?? false) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('profileImagePath');
+        
+        if (mounted) {
+          setState(() {
+            _profileImagePath = null;
+          });
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profile picture deleted'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error deleting picture: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _uploadProfilePicture() async {
+    try {
+      // Request storage permission for photo access
+      PermissionStatus status = await Permission.storage.request();
+      
+      // For Android 13+, also try media library permission
+      if (!status.isGranted) {
+        status = await Permission.mediaLibrary.request();
+      }
+      
+      // If still not granted, show appropriate message
+      if (!status.isGranted) {
+        if (status.isDenied) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Photo library permission is required to upload a profile picture'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        } else if (status.isPermanentlyDenied) {
+          if (mounted) {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Photo Library Permission Required'),
+                content: const Text(
+                  'Photo library permission is required to upload a profile picture. Please enable it in app settings.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      openAppSettings();
+                    },
+                    child: const Text('Open Settings'),
+                  ),
+                ],
+              ),
+            );
+          }
+        }
+        return;
+      }
+      
+      // Permission granted, pick image
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+      
+      if (image != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('profileImagePath', image.path);
+        
+        if (mounted) {
+          setState(() {
+            _profileImagePath = image.path;
+          });
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profile picture updated'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error uploading picture: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _editName() async {
+    if (_nameEditController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your name')),
+      );
+      return;
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('fullName', _nameEditController.text);
+      
+      if (mounted) {
+        setState(() {
+          _fullName = _nameEditController.text;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Name updated successfully'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error updating name: $e')),
+        );
+      }
+    }
+  }
+
+  void _showNameEditDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+        final bgColor = isDarkMode ? AppTheme.darkGradientTop : const Color(0xFFFFF8F2);
+        final textColor = isDarkMode ? AppTheme.textPrimary : const Color(0xFF1F1F1F);
+        
+        return AlertDialog(
+          backgroundColor: bgColor,
+          title: Text(
+            'Edit Name',
+            style: TextStyle(color: textColor),
+          ),
+          content: TextField(
+            controller: _nameEditController,
+            style: TextStyle(color: textColor),
+            decoration: InputDecoration(
+              hintText: 'Enter your full name',
+              hintStyle: TextStyle(color: AppTheme.textSecondary),
+              border: const OutlineInputBorder(),
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: isDarkMode ? AppTheme.glassBorder : Colors.grey),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: isDarkMode ? AppTheme.textSecondary : const Color(0xFF707070),
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _editName();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF8C42),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -87,31 +321,137 @@ class _ProfilePageState extends State<ProfilePage> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Profile Header
+                  // Profile Header with Avatar
                   const SizedBox(height: 16),
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: isDarkMode
-                        ? AppTheme.glassDarkMedium
-                        : _orange.withValues(alpha: 0.2),
-                    child: Text(
-                      (_userEmail != null && _userEmail!.isNotEmpty)
-                          ? _userEmail!.substring(0, 1).toUpperCase()
-                          : 'U',
-                      style: const TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.accentOrange,
-                      ),
+                  Center(
+                    child: Stack(
+                      children: [
+                        // Avatar
+                        CircleAvatar(
+                          radius: 60,
+                          backgroundColor: isDarkMode
+                              ? AppTheme.glassDarkMedium
+                              : _orange.withValues(alpha: 0.2),
+                          backgroundImage: _profileImagePath != null && File(_profileImagePath!).existsSync()
+                              ? FileImage(File(_profileImagePath!)) as ImageProvider
+                              : null,
+                          child: _profileImagePath == null || !File(_profileImagePath!).existsSync()
+                              ? Text(
+                                  (_fullName?.isNotEmpty ?? false)
+                                      ? _fullName!.substring(0, 1).toUpperCase()
+                                      : (_userEmail?.isNotEmpty ?? false)
+                                          ? _userEmail!.substring(0, 1).toUpperCase()
+                                          : 'U',
+                                  style: const TextStyle(
+                                    fontSize: 48,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFFFF8C42),
+                                  ),
+                                )
+                              : null,
+                        ),
+                        // Upload button
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: const Color(0xFFFF8C42),
+                              border: Border.all(
+                                color: bgColor == Colors.transparent ? Colors.white : _bgColor,
+                                width: 3,
+                              ),
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: _uploadProfilePicture,
+                                customBorder: const CircleBorder(),
+                                child: const Padding(
+                                  padding: EdgeInsets.all(8),
+                                  child: Icon(
+                                    Icons.camera_alt_rounded,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Delete button (only show if image exists)
+                        if (_profileImagePath != null && File(_profileImagePath!).existsSync())
+                          Positioned(
+                            bottom: 0,
+                            left: 0,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.red.withValues(alpha: 0.8),
+                                border: Border.all(
+                                  color: bgColor == Colors.transparent ? Colors.white : _bgColor,
+                                  width: 3,
+                                ),
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: _deleteProfilePicture,
+                                  customBorder: const CircleBorder(),
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(8),
+                                    child: Icon(
+                                      Icons.delete_outline_rounded,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    _userEmail ?? 'User',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: titleColor,
+                  // Full Name with Edit Button
+                  Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            _fullName?.isNotEmpty ?? false
+                                ? _fullName!
+                                : 'Add your name',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: titleColor,
+                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: _showNameEditDialog,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: _orange.withValues(alpha: 0.2),
+                            ),
+                            child: Icon(
+                              Icons.edit_outlined,
+                              size: 18,
+                              color: _orange,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   if (_userData != null && _userData!['createdAt'] != null)
@@ -123,28 +463,45 @@ class _ProfilePageState extends State<ProfilePage> {
                           fontSize: 14,
                           color: subtitleColor,
                         ),
+                        textAlign: TextAlign.center,
                       ),
                     ),
                   const SizedBox(height: 32),
-                  // Profile Information Section
-                  _ProfileSection(
-                    title: 'Account Information',
-                    isDarkMode: isDarkMode,
-                    children: [
-                      _ProfileInfoTile(
-                        icon: Icons.email_outlined,
-                        label: 'Email',
-                        value: _userEmail ?? 'Not available',
-                        isDarkMode: isDarkMode,
-                      ),
-                      if (_userData != null && _userData!['id'] != null)
-                        _ProfileInfoTile(
-                          icon: Icons.badge_outlined,
-                          label: 'User ID',
-                          value: _userData!['id'].toString(),
-                          isDarkMode: isDarkMode,
+                  // Account Information Button
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AccountInfoScreen(userEmail: _userEmail),
                         ),
-                    ],
+                      ).then((_) {
+                        // Reload profile after returning
+                        _loadProfile();
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _orange,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.account_circle_outlined, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'Account Information',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 24),
                   // Safety Features Section

@@ -135,7 +135,7 @@ class _MapPageState extends State<MapPage> {
             width: double.infinity,
             padding: const EdgeInsets.all(8),
             color: isDarkMode
-                ? AppTheme.accentOrange.withOpacity(0.2)
+                ? AppTheme.accentOrange.withValues(alpha: 0.2)
                 : Colors.orange.withValues(alpha: 0.1),
             child: Text(
               'Nu există conexiune la internet. Harta poate să nu se actualizeze, '

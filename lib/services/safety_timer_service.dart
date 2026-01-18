@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'emergency_service.dart';
+import 'alert_manager.dart';
 
 /// Safety Timer (Dead Man's Switch) service
 /// User sets a timer and if they don't check in or disable it by the time it expires,
@@ -145,6 +146,7 @@ class SafetyTimerService {
       // Check if timer expired
       if (remaining.isNegative) {
         _timerTick?.cancel();
+        await AlertManager.instance.cancelTimerWarning();
         await _triggerSos();
         return;
       }
@@ -158,6 +160,22 @@ class SafetyTimerService {
 
           debugPrint('⚠️ Safety Timer check-in notification triggered');
           _onTimerEvent?.call(SafetyTimerEvent.checkInNotification);
+          
+          // Show background notification with action buttons
+          final mins = remaining.inMinutes;
+          final secs = remaining.inSeconds % 60;
+          final timerText = '$mins:${secs.toString().padLeft(2, '0')} remaining';
+          await AlertManager.instance.showTimerWarningNotification(
+            timerText: timerText,
+          );
+        } else {
+          // Update notification every second while in the 5-minute window
+          final mins = remaining.inMinutes;
+          final secs = remaining.inSeconds % 60;
+          final timerText = '$mins:${secs.toString().padLeft(2, '0')} remaining';
+          await AlertManager.instance.updateTimerWarningNotification(
+            timerText: timerText,
+          );
         }
       }
 

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -13,13 +12,24 @@ class AlertManager {
   static final AlertManager instance = AlertManager._internal();
 
   static const int _preAlarmNotificationId = 42000;
+  static const int _timerWarningNotificationId = 42001;
   static const String _preAlarmChannelId = 'pre_alarm_channel';
   static const String _preAlarmChannelName = 'Safety Pre-Alarms';
   static const String _preAlarmChannelDescription =
       'Heads-up alerts with countdown before sending SOS.';
+  
+  static const String _timerChannelId = 'safety_timer_channel';
+  static const String _timerChannelName = 'Safety Timer';
+  static const String _timerChannelDescription =
+      'Safety Timer warnings with quick actions.';
 
   static const String _actionCancelId = 'action_pre_alarm_cancel';
+  static const String _actionTimerStopId = 'action_timer_stop';
+  static const String _actionTimerAdd5Id = 'action_timer_add5';
+  static const String _actionTimerAdd15Id = 'action_timer_add15';
+  static const String _actionTimerAdd30Id = 'action_timer_add30';
   static const String _payloadPreAlarm = 'payload_pre_alarm';
+  static const String _payloadTimerWarning = 'payload_timer_warning';
 
   final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
@@ -31,14 +41,17 @@ class AlertManager {
 
   Future<void> Function()? _onSendSos;
   VoidCallback? _onCancelled;
+  Function(String actionId)? _onTimerAction;
 
   /// Initialize notification channels and callbacks. Must be called in main().
   Future<void> initialize({
     required Future<void> Function() onSendSos,
     VoidCallback? onCancelled,
+    Function(String actionId)? onTimerAction,
   }) async {
     _onSendSos = onSendSos;
     _onCancelled = onCancelled;
+    _onTimerAction = onTimerAction;
 
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const initSettings = InitializationSettings(android: androidInit);
@@ -54,12 +67,25 @@ class AlertManager {
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>();
     if (android != null) {
+      // Pre-alarm channel
       await android.createNotificationChannel(
         const AndroidNotificationChannel(
           _preAlarmChannelId,
           _preAlarmChannelName,
           description: _preAlarmChannelDescription,
           importance: Importance.max,
+          playSound: true,
+          enableVibration: true,
+        ),
+      );
+      
+      // Safety Timer channel
+      await android.createNotificationChannel(
+        const AndroidNotificationChannel(
+          _timerChannelId,
+          _timerChannelName,
+          description: _timerChannelDescription,
+          importance: Importance.high,
           playSound: true,
           enableVibration: true,
         ),
@@ -199,6 +225,18 @@ class AlertManager {
   }
 
   Future<void> _processResponse(NotificationResponse response) async {
+    // Handle timer actions
+    if (response.payload == _payloadTimerWarning) {
+      if (response.actionId == _actionTimerStopId ||
+          response.actionId == _actionTimerAdd5Id ||
+          response.actionId == _actionTimerAdd15Id ||
+          response.actionId == _actionTimerAdd30Id) {
+        _onTimerAction?.call(response.actionId ?? '');
+      }
+      return;
+    }
+
+    // Handle pre-alarm actions
     if (!_preAlarmActive) return;
 
     // Action button: cancel pre-alarm
@@ -224,5 +262,127 @@ class AlertManager {
     } catch (_) {
       // Ignore vibration failures (some devices lack permission or capability)
     }
+  }
+
+  /// Show a timer warning notification with action buttons (5min before expiry)
+  Future<void> showTimerWarningNotification({
+    required String timerText,
+  }) async {
+    final androidDetails = AndroidNotificationDetails(
+      _timerChannelId,
+      _timerChannelName,
+      channelDescription: _timerChannelDescription,
+      importance: Importance.high,
+      priority: Priority.high,
+      fullScreenIntent: true,
+      category: AndroidNotificationCategory.alarm,
+      ticker: 'Safety Timer Warning',
+      visibility: NotificationVisibility.public,
+      enableVibration: true,
+      onlyAlertOnce: false,
+      autoCancel: false,
+      vibrationPattern: Int64List.fromList([0, 300, 200, 300]),
+      actions: <AndroidNotificationAction>[
+        const AndroidNotificationAction(
+          _actionTimerStopId,
+          '⏹ Stop',
+          showsUserInterface: true,
+          cancelNotification: false,
+        ),
+        const AndroidNotificationAction(
+          _actionTimerAdd5Id,
+          '+5 min',
+          showsUserInterface: false,
+          cancelNotification: false,
+        ),
+        const AndroidNotificationAction(
+          _actionTimerAdd15Id,
+          '+15 min',
+          showsUserInterface: false,
+          cancelNotification: false,
+        ),
+        const AndroidNotificationAction(
+          _actionTimerAdd30Id,
+          '+30 min',
+          showsUserInterface: false,
+          cancelNotification: false,
+        ),
+      ],
+    );
+
+    final details = NotificationDetails(android: androidDetails);
+
+    await _notifications.show(
+      _timerWarningNotificationId,
+      '⏱️ Safety Timer Warning',
+      timerText,
+      details,
+      payload: _payloadTimerWarning,
+    );
+
+    try {
+      await Vibration.vibrate(pattern: const [0, 300, 200, 300]);
+    } catch (_) {}
+  }
+
+  /// Cancel the timer warning notification
+  Future<void> cancelTimerWarning() async {
+    await _notifications.cancel(_timerWarningNotificationId);
+  }
+
+  /// Update the timer warning notification (called every second to show updated time)
+  Future<void> updateTimerWarningNotification({
+    required String timerText,
+  }) async {
+    final androidDetails = AndroidNotificationDetails(
+      _timerChannelId,
+      _timerChannelName,
+      channelDescription: _timerChannelDescription,
+      importance: Importance.high,
+      priority: Priority.high,
+      fullScreenIntent: true,
+      category: AndroidNotificationCategory.alarm,
+      ticker: 'Safety Timer Warning',
+      visibility: NotificationVisibility.public,
+      enableVibration: false,
+      onlyAlertOnce: true, // Don't vibrate on update
+      autoCancel: false,
+      actions: <AndroidNotificationAction>[
+        const AndroidNotificationAction(
+          _actionTimerStopId,
+          '⏹ Stop',
+          showsUserInterface: true,
+          cancelNotification: false,
+        ),
+        const AndroidNotificationAction(
+          _actionTimerAdd5Id,
+          '+5 min',
+          showsUserInterface: false,
+          cancelNotification: false,
+        ),
+        const AndroidNotificationAction(
+          _actionTimerAdd15Id,
+          '+15 min',
+          showsUserInterface: false,
+          cancelNotification: false,
+        ),
+        const AndroidNotificationAction(
+          _actionTimerAdd30Id,
+          '+30 min',
+          showsUserInterface: false,
+          cancelNotification: false,
+        ),
+      ],
+    );
+
+    final details = NotificationDetails(android: androidDetails);
+
+    await _notifications.show(
+      _timerWarningNotificationId,
+      '⏱️ Safety Timer Warning',
+      timerText,
+      details,
+      payload: _payloadTimerWarning,
+    );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/safety_timer_service.dart';
+import '../config/app_theme.dart';
 
 class SafetyTimerPage extends StatefulWidget {
   const SafetyTimerPage({super.key});
@@ -66,6 +67,7 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final currentState = _safetyTimerService.getCurrentState();
     final isActive = currentState?.isActive ?? false;
     final isWarning = currentState?.isCheckInWarning ?? false;
@@ -120,13 +122,6 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        'Dead Man\'s Switch',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.white70,
-                        ),
-                      ),
                       const SizedBox(height: 4),
                       const Text(
                         'Automatic emergency alert if you don\'t check in',
@@ -288,12 +283,12 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
                   // Timer not active - show preset options
                   Column(
                     children: [
-                      const Text(
+                      Text(
                         'Set your safety timer:',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1F1F1F),
+                          color: isDarkMode ? AppTheme.textPrimary : const Color(0xFF1F1F1F),
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -303,6 +298,7 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
                         duration: 15,
                         icon: Icons.directions_run,
                         description: 'Quick jog or errand',
+                        isDarkMode: isDarkMode,
                       ),
                       const SizedBox(height: 12),
                       _buildTimerButton(
@@ -310,6 +306,7 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
                         duration: 30,
                         icon: Icons.directions_walk,
                         description: 'Short outing',
+                        isDarkMode: isDarkMode,
                       ),
                       const SizedBox(height: 12),
                       _buildTimerButton(
@@ -317,6 +314,7 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
                         duration: 60,
                         icon: Icons.public,
                         description: 'Travel or outdoor activity',
+                        isDarkMode: isDarkMode,
                       ),
                       const SizedBox(height: 12),
                       _buildTimerButton(
@@ -324,6 +322,7 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
                         duration: 120,
                         icon: Icons.directions_car,
                         description: 'Long journey',
+                        isDarkMode: isDarkMode,
                       ),
                       const SizedBox(height: 32),
                     ],
@@ -333,40 +332,47 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Color(0xFFFFF8F0),
+                    color: isDarkMode ? AppTheme.glassDarkMedium : const Color(0xFFFFF8F0),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Color(0xFFFFE0CC)),
+                    border: Border.all(
+                      color: isDarkMode ? AppTheme.glassBorder : const Color(0xFFFFE0CC),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'How it works:',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1F1F1F),
+                          color: isDarkMode ? AppTheme.textPrimary : const Color(0xFF1F1F1F),
                         ),
                       ),
                       const SizedBox(height: 8),
                       _buildInfoItem(
                         '1',
                         'Set a timer for your activity (jogging, traveling, etc.)',
+                        isDarkMode: isDarkMode,
                       ),
                       _buildInfoItem(
                         '2',
                         'Timer counts down in background',
+                        isDarkMode: isDarkMode,
                       ),
                       _buildInfoItem(
                         '3',
                         '5 minutes before expiry, you get a notification',
+                        isDarkMode: isDarkMode,
                       ),
                       _buildInfoItem(
                         '4',
                         'Tap "I\'m OK" to stop, or extend if you need more time',
+                        isDarkMode: isDarkMode,
                       ),
                       _buildInfoItem(
                         '5',
                         'If timer reaches 0:00, emergency alert sent automatically',
+                        isDarkMode: isDarkMode,
                       ),
                     ],
                   ),
@@ -384,18 +390,21 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
     required int duration,
     required IconData icon,
     required String description,
+    required bool isDarkMode,
   }) {
     return InkWell(
       onTap: () => _startTimer(duration),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: Color(0xFFE0E0E0)),
+          color: isDarkMode ? AppTheme.glassDarkMedium : Colors.white,
+          border: Border.all(
+            color: isDarkMode ? AppTheme.glassBorder : const Color(0xFFE0E0E0),
+          ),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withValues(alpha: isDarkMode ? 0.3 : 0.05),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -406,12 +415,12 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Color(0xFFFF8C42).withValues(alpha: 0.1),
+                color: const Color(0xFFFF8C42).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 icon,
-                color: Color(0xFFFF8C42),
+                color: const Color(0xFFFF8C42),
                 size: 24,
               ),
             ),
@@ -422,10 +431,10 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
                 children: [
                   Text(
                     label,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1F1F1F),
+                      color: isDarkMode ? AppTheme.textPrimary : const Color(0xFF1F1F1F),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -433,13 +442,13 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
                     description,
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey.shade600,
+                      color: isDarkMode ? AppTheme.textSecondary : Colors.grey.shade600,
                     ),
                   ),
                 ],
               ),
             ),
-            Icon(
+            const Icon(
               Icons.arrow_forward_rounded,
               color: Color(0xFFFF8C42),
             ),
@@ -449,7 +458,7 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
     );
   }
 
-  Widget _buildInfoItem(String number, String text) {
+  Widget _buildInfoItem(String number, String text, {required bool isDarkMode}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -458,7 +467,7 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
           Container(
             width: 24,
             height: 24,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Color(0xFFFF8C42),
               shape: BoxShape.circle,
             ),
@@ -479,7 +488,7 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
               text,
               style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF555555),
+                color: isDarkMode ? AppTheme.textSecondary : const Color(0xFF555555),
                 height: 1.4,
               ),
             ),

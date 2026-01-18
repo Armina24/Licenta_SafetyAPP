@@ -73,7 +73,9 @@ dependencies:
   path_provider: ^2.1.0
   just_audio: ^0.9.36
   sensors_plus: ^6.0.0
-
+  # untuk sharing location dan upload profile picture
+  share_plus: ^7.2.0
+  image_picker: ^1.0.0
 
 dev_dependencies:
   flutter_test:

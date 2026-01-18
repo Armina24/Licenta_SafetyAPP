@@ -155,7 +155,7 @@ class _ContactsPageState extends State<ContactsPage> {
                     Icons.contacts_outlined,
                     size: 64,
                     color: isDarkMode
-                        ? AppTheme.textTertiary.withOpacity(0.5)
+                        ? AppTheme.textTertiary.withValues(alpha: 0.5)
                         : Colors.grey.withValues(alpha: 0.5),
                   ),
                   const SizedBox(height: 16),
@@ -197,7 +197,7 @@ class _ContactsPageState extends State<ContactsPage> {
                   color: isDarkMode ? AppTheme.glassDarkMedium : Colors.white,
                   child: ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: AppTheme.accentOrange.withOpacity(0.2),
+                      backgroundColor: AppTheme.accentOrange.withValues(alpha: 0.2),
                       child: Text(
                         contact['name']![0].toUpperCase(),
                         style: const TextStyle(

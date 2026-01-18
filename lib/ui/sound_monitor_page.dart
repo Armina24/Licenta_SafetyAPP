@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/audio_YAMNet/audio_monitor_service.dart';
 import '../services/audio_YAMNet/audio_threat_detection_service.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
@@ -27,6 +28,43 @@ class _SoundMonitorPageState extends State<SoundMonitorPage> {
       onPreAlarmConfirmed: _onPreAlarmConfirmed,
       onPreAlarmCancelled: _onPreAlarmCancelled,
     );
+    
+    // Check if Safety Shield is active and auto-enable monitoring
+    _checkSafetyShieldState();
+  }
+
+  /// Check if Safety Shield is active and auto-activate foreground monitoring
+  Future<void> _checkSafetyShieldState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isSafetyShieldActive = prefs.getBool('safety_shield_active') ?? false;
+    
+    if (isSafetyShieldActive && !_fgMonitoring) {
+      // Auto-enable foreground monitoring if Safety Shield is active
+      final micStatus = await Permission.microphone.request();
+      if (!mounted) return;
+      
+      if (micStatus.isGranted) {
+        await AudioMonitorService.instance.startMonitoring(
+          onAlert: (result) {
+            _threatDetectionService.processSoundDetection(result);
+            setState(() {
+              _lastEvent = 'Detectare sunet: $result';
+            });
+
+            if (_threatDetectionService.hasActivePreAlarm) {
+              final prealarm = _threatDetectionService.currentPreAlarm;
+              if (prealarm != null) {
+                _showSoundDetectionDialog(prealarm.threatEvent);
+              }
+            }
+          },
+        );
+        setState(() {
+          _fgMonitoring = true;
+          _lastEvent = 'Monitorizare sunete (foreground) PORNITĂ (Safety Shield Active)';
+        });
+      }
+    }
   }
 
   @override

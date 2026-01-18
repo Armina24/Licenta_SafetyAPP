@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'services/emergency_service.dart';
 import 'services/shake_detection_service.dart';
 import 'services/alert_manager.dart';
+import 'services/audio_yamnet/audio_monitor_service.dart';
+import 'services/audio_yamnet/audio_threat_detection_service.dart';
 import 'ui/scaffold_wrapper.dart';
+import 'ui/share_location_dialog.dart';
 import 'config/app_theme.dart';
 
 class HomePage extends StatefulWidget {
@@ -20,17 +25,22 @@ class _HomePageState extends State<HomePage> {
 
   int _selectedIndex = 0;
   bool _isSendingSos = false;
+  bool _isSafetyShieldActive = false;
+  bool _isSoundMonitoringActive = false;
+  
   late final EmergencyService _emergencyService;
   late final ShakeDetectionService _shakeDetectionService;
+  late final AudioThreatDetectionService _threatDetectionService;
 
   void _onBottomNavTap(int index) {
     setState(() => _selectedIndex = index);
 
     if (index == 1) {
-      // Alerts screen - coming soon
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Alerts screen coming soon')),
-      );
+      // Navigate to Map screen
+      Navigator.pushNamed(context, '/map').then((_) {
+        // Reset to home when returning
+        setState(() => _selectedIndex = 0);
+      });
     } else if (index == 2) {
       // Navigate to Profile
       Navigator.pushNamed(context, '/profile').then((_) {
@@ -44,6 +54,148 @@ class _HomePageState extends State<HomePage> {
     Navigator.pushNamed(context, '/settings');
   }
 
+  /// Load the Safety Shield state from SharedPreferences
+  Future<void> _loadSafetyShieldState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isActive = prefs.getBool('safety_shield_active') ?? false;
+    setState(() {
+      _isSafetyShieldActive = isActive;
+    });
+    
+    // Apply the state to services
+    if (isActive) {
+      _enableSafetyShield();
+    } else {
+      _disableSafetyShield();
+    }
+  }
+
+  /// Enable audio monitoring (foreground)
+  Future<void> _enableAudioMonitoring() async {
+    try {
+      final micStatus = await Permission.microphone.request();
+      if (micStatus.isGranted) {
+        await AudioMonitorService.instance.startMonitoring(
+          onAlert: (result) {
+            // Process sound through threat detection service
+            _threatDetectionService.processSoundDetection(result);
+          },
+        );
+        setState(() {
+          _isSoundMonitoringActive = true;
+        });
+        debugPrint('🎙️ Audio monitoring started');
+        return;
+      }
+    } catch (e) {
+      debugPrint('Error starting audio monitoring: $e');
+    }
+    
+    // If permission denied or error, revert state
+    setState(() {
+      _isSoundMonitoringActive = false;
+    });
+  }
+
+  /// Disable audio monitoring
+  Future<void> _disableAudioMonitoring() async {
+    try {
+      await AudioMonitorService.instance.stopMonitoring();
+      setState(() {
+        _isSoundMonitoringActive = false;
+      });
+      debugPrint('🎙️ Audio monitoring stopped');
+    } catch (e) {
+      debugPrint('Error stopping audio monitoring: $e');
+    }
+  }
+
+  /// Toggle sound monitoring independently
+  Future<void> _toggleSoundMonitoring() async {
+    final newState = !_isSoundMonitoringActive;
+    
+    if (newState) {
+      await _enableAudioMonitoring();
+      if (mounted && _isSoundMonitoringActive) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('🎙️ Sound Monitoring Enabled'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } else {
+      await _disableAudioMonitoring();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Sound Monitoring Disabled'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  /// Enable all safety monitoring services
+  Future<void> _enableSafetyShield() async {
+    // Start shake detection
+    _shakeDetectionService.startListening(
+      onDangerousShake: _onDangerousShakeDetected,
+    );
+    
+    // Automatically enable sound monitoring when safety shield is activated
+    await _enableAudioMonitoring();
+    
+    debugPrint('🛡️ Safety Shield ACTIVATED - All monitoring services enabled');
+  }
+
+  /// Disable all safety monitoring services
+  Future<void> _disableSafetyShield() async {
+    // Stop shake detection
+    _shakeDetectionService.stopListening();
+    
+    // Stop audio monitoring
+    await _disableAudioMonitoring();
+    
+    debugPrint('🛡️ Safety Shield DEACTIVATED - All monitoring services disabled');
+  }
+
+  /// Toggle the Safety Shield on/off
+  Future<void> _toggleSafetyShield() async {
+    final newState = !_isSafetyShieldActive;
+    
+    // Save to SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('safety_shield_active', newState);
+    
+    setState(() {
+      _isSafetyShieldActive = newState;
+    });
+    
+    if (newState) {
+      await _enableSafetyShield();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('🛡️ Safety Shield Activated - Monitoring enabled'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } else {
+      await _disableSafetyShield();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Safety Shield Deactivated - Monitoring disabled'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -52,11 +204,34 @@ class _HomePageState extends State<HomePage> {
     // Consumă eventuale evenimente deja emise înainte de a fi construit widgetul.
     _onBackgroundEvent();
 
-    // Initialize advanced shake detection
+    // Initialize shake detection service
     _shakeDetectionService = ShakeDetectionService.instance;
-    _shakeDetectionService.startListening(
-      onDangerousShake: _onDangerousShakeDetected,
+    
+    // Initialize audio threat detection service
+    _threatDetectionService = AudioThreatDetectionService.instance;
+    _threatDetectionService.initialize(
+      onThreatDetected: _onThreatDetected,
+      onPreAlarmConfirmed: _onPreAlarmConfirmed,
+      onPreAlarmCancelled: _onPreAlarmCancelled,
     );
+    
+    // Load Safety Shield state and apply it
+    _loadSafetyShieldState();
+  }
+  
+  /// Called when a threat is detected
+  void _onThreatDetected(ThreatDetectionEvent event) {
+    debugPrint('🚨 Threat detected: ${event.threatType}');
+  }
+
+  /// Called when pre-alarm is confirmed
+  void _onPreAlarmConfirmed(ThreatDetectionEvent event) {
+    debugPrint('✓ Pre-alarm confirmed - executing SOS');
+  }
+
+  /// Called when pre-alarm is cancelled
+  void _onPreAlarmCancelled(ThreatDetectionEvent event, String reason) {
+    debugPrint('✓ Pre-alarm cancelled: $reason');
   }
 
   /// Called when dangerous shake is detected (fall or struggle)
@@ -141,13 +316,12 @@ class _HomePageState extends State<HomePage> {
     final subtleColor = isDarkMode ? AppTheme.textSecondary : const Color(0xFF555555);
 
     final bodyContent = SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // HEADER: salut + icon setări
-            Row(
+      child: Column(
+        children: [
+          // HEADER: salut + icon setări
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
@@ -163,7 +337,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Welcome to Safety App',
+                        'Welcome to Kore',
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -180,171 +354,154 @@ class _HomePageState extends State<HomePage> {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-            // SOS BUTTON
-            Center(
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  GestureDetector(
-                    onTap: _isSendingSos ? null : _sendSos,
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 200),
-                      opacity: _isSendingSos ? 0.7 : 1.0,
-                      child: Container(
-                        width: 160,
-                        height: 160,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: const LinearGradient(
-                            colors: [_orange, _orangeDark],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
+          ),
+          // SCROLLABLE CONTENT: SOS Button + Dashboard Cards
+          Expanded(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  children: [
+                    // SOS BUTTON
+                    const SizedBox(height: 12),
+                    Center(
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          GestureDetector(
+                            onTap: _isSendingSos ? null : _sendSos,
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 200),
+                              opacity: _isSendingSos ? 0.7 : 1.0,
+                              child: Container(
+                                width: 160,
+                                height: 160,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: const LinearGradient(
+                                    colors: [_orange, _orangeDark],
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: _orangeDark.withValues(alpha: 0.35),
+                                      blurRadius: 24,
+                                      offset: const Offset(0, 12),
+                                    ),
+                                  ],
+                                ),
+                                child: const Center(
+                                  child: Text(
+                                    'SOS',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 2,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: _orangeDark.withValues(alpha: 0.35),
-                              blurRadius: 24,
-                              offset: const Offset(0, 12),
+                          if (_isSendingSos)
+                            Container(
+                              width: 160,
+                              height: 160,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.black.withValues(alpha: 0.2),
+                              ),
+                              child: const Center(
+                                child: SizedBox(
+                                  width: 48,
+                                  height: 48,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 4,
+                                    valueColor:
+                                        AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: Text(
+                        'Tap to send alert to your\ntrusted contacts',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: subtleColor,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    // SAFETY SHIELD BUTTON (styled like Sound Monitor)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _toggleSafetyShield,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _isSafetyShieldActive
+                              ? Colors.red.withValues(alpha: 0.8)
+                              : (isDarkMode
+                                  ? AppTheme.glassDarkMedium
+                                  : const Color(0xFFFFE0B2)), // Pale orange for light mode
+                          foregroundColor: _isSafetyShieldActive
+                              ? Colors.white
+                              : (isDarkMode
+                                  ? AppTheme.textPrimary
+                                  : const Color(0xFF1F1F1F)),
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(
+                              color: _isSafetyShieldActive
+                                  ? Colors.red.withValues(alpha: 0.6)
+                                  : (isDarkMode
+                                      ? AppTheme.glassBorder
+                                      : const Color(0xFFFFD699)),
+                              width: 1.5,
+                            ),
+                          ),
+                          elevation: _isSafetyShieldActive ? 4 : 1,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _isSafetyShieldActive
+                                  ? Icons.shield_rounded
+                                  : Icons.shield_outlined,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 10),
+                            Flexible(
+                              child: Text(
+                                _isSafetyShieldActive
+                                    ? 'Safety Features: ACTIVE'
+                                    : 'Activate Safety Features',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
                             ),
                           ],
                         ),
-                        child: const Center(
-                          child: Text(
-                            'SOS',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 36,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 2,
-                            ),
-                          ),
-                        ),
                       ),
                     ),
-                  ),
-                  if (_isSendingSos)
-                    Container(
-                      width: 160,
-                      height: 160,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.black.withValues(alpha: 0.2),
-                      ),
-                      child: const Center(
-                        child: SizedBox(
-                          width: 48,
-                          height: 48,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 4,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Center(
-              child: Text(
-                'Tap to send alert to your\ntrusted contacts',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: subtleColor,
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            // DASHBOARD CARDS
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
+                    const SizedBox(height: 24),
+                    // DASHBOARD CARDS - NEW GRID LAYOUT
+                    
+                    // Row 1: Manage Contacts + Share Location
                     Row(
                       children: [
-                        Expanded(
-                          child: _DashboardCard(
-                            title: 'Location',
-                            subtitle: 'Live · Your city',
-                            icon: Icons.location_on_rounded,
-                            iconBackground: _orange.withValues(alpha: 0.18),
-                            isDarkMode: isDarkMode,
-                            child: Container(
-                              height: 60,
-                              decoration: BoxDecoration(
-                                color: isDarkMode
-                                    ? AppTheme.glassDarkMedium
-                                    : const Color(0xFFFFF2E7),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  'Map preview',
-                                  style: TextStyle(
-                                    color: isDarkMode
-                                        ? AppTheme.accentOrange
-                                        : const Color(0xFFB36B33),
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            onTap: () {
-                              Navigator.pushNamed(context, '/map');
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _DashboardCard(
-                            title: 'Recent alert',
-                            subtitle: 'None yet',
-                            icon: Icons.history_rounded,
-                            iconBackground:
-                                Colors.blueGrey.withValues(alpha: 0.12),
-                            isDarkMode: isDarkMode,
-                            child: Padding(
-                              padding: const EdgeInsets.only(top: 8.0),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  'When you send an alert,\nit will appear here.',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: subtleColor,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _DashboardCard(
-                            title: 'Share location',
-                            subtitle: 'Send your live position',
-                            icon: Icons.near_me_rounded,
-                            iconBackground:
-                                _orange.withValues(alpha: 0.18),
-                            isDarkMode: isDarkMode,
-                            onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                      'Demo: sharing location (not implemented).'),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
                         Expanded(
                           child: _DashboardCard(
                             title: 'Manage contacts',
@@ -358,51 +515,119 @@ class _HomePageState extends State<HomePage> {
                             },
                           ),
                         ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _DashboardCard(
+                            title: 'Share location',
+                            subtitle: 'Send your live position',
+                            icon: Icons.near_me_rounded,
+                            iconBackground:
+                                _orange.withValues(alpha: 0.18),
+                            isDarkMode: isDarkMode,
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) => ShareLocationDialog(
+                                  onShare: (duration, method) {
+                                    // Handle the share action
+                                    // duration: "30 Minutes", "1 Hour", "3 Hours"
+                                    // method: "sms" or "app"
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: _DashboardCard(
-                        title: 'Safety Timer',
-                        subtitle: 'Dead Man\'s Switch',
-                        icon: Icons.schedule_rounded,
-                        iconBackground:
-                            Colors.purple.withValues(alpha: 0.15),
-                        isDarkMode: isDarkMode,
-                        onTap: () {
-                          Navigator.pushNamed(context, '/safetyTimer');
-                        },
-                      ),
+                    
+                    // Row 2: Safety Timer + Black Box Recordings
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _DashboardCard(
+                            title: 'Safety Timer',
+                            subtitle: 'Set your free time',
+                            icon: Icons.schedule_rounded,
+                            iconBackground:
+                                Colors.purple.withValues(alpha: 0.15),
+                            isDarkMode: isDarkMode,
+                            onTap: () {
+                              Navigator.pushNamed(context, '/safetyTimer');
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _DashboardCard(
+                            title: 'Emergency Recordings',
+                            subtitle: 'Photos & Recordings',
+                            icon: Icons.videocam_rounded,
+                            iconBackground:
+                                Colors.red.withValues(alpha: 0.15),
+                            isDarkMode: isDarkMode,
+                            onTap: () {
+                              Navigator.pushNamed(context, '/recordings');
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 12),
+                    
+                    // Row 3: Sound Monitoring (Full Width)
                     SizedBox(
                       width: double.infinity,
-                      child: _DashboardCard(
-                        title: 'Black Box Recordings',
-                        subtitle: 'View captured audio & photos',
-                        icon: Icons.videocam_rounded,
-                        iconBackground:
-                            Colors.red.withValues(alpha: 0.15),
-                        isDarkMode: isDarkMode,
-                        onTap: () {
-                          Navigator.pushNamed(context, '/recordings');
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: _DashboardCard(
-                        title: 'Monitor sunete',
-                        subtitle: 'Detectează țipete, aglomerație, spargeri',
-                        icon: Icons.hearing_rounded,
-                        iconBackground:
-                            Colors.purple.withValues(alpha: 0.15),
-                        isDarkMode: isDarkMode,
-                        onTap: () {
-                          Navigator.pushNamed(context, '/soundMonitor');
-                        },
+                      child: ElevatedButton(
+                        onPressed: _toggleSoundMonitoring,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _isSoundMonitoringActive
+                              ? Colors.green.withValues(alpha: 0.7)
+                              : (isDarkMode
+                                  ? AppTheme.glassDarkMedium
+                                  : const Color(0xFFE8F5E9)), // Pale green for light mode
+                          foregroundColor: _isSoundMonitoringActive
+                              ? Colors.white
+                              : (isDarkMode
+                                  ? AppTheme.textPrimary
+                                  : const Color(0xFF1F1F1F)),
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(
+                              color: _isSoundMonitoringActive
+                                  ? Colors.green.withValues(alpha: 0.6)
+                                  : (isDarkMode
+                                      ? AppTheme.glassBorder
+                                      : const Color(0xFFC8E6C9)),
+                              width: 1.5,
+                            ),
+                          ),
+                          elevation: _isSoundMonitoringActive ? 4 : 1,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _isSoundMonitoringActive
+                                  ? Icons.hearing_rounded
+                                  : Icons.hearing_outlined,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 10),
+                            Flexible(
+                              child: Text(
+                                'Sound Monitoring',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -410,8 +635,8 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
 
@@ -421,7 +646,7 @@ class _HomePageState extends State<HomePage> {
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _selectedIndex,
           onTap: _onBottomNavTap,
-          backgroundColor: AppTheme.darkGradientBottom.withOpacity(0.8),
+          backgroundColor: AppTheme.darkGradientBottom.withValues(alpha: 0.8),
           selectedItemColor: AppTheme.accentOrange,
           unselectedItemColor: AppTheme.textSecondary,
           items: const [
@@ -430,8 +655,8 @@ class _HomePageState extends State<HomePage> {
               label: 'Home',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.notifications_rounded),
-              label: 'Alerts',
+              icon: Icon(Icons.map_rounded),
+              label: 'Map',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_rounded),
@@ -457,8 +682,8 @@ class _HomePageState extends State<HomePage> {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications_rounded),
-            label: 'Alerts',
+            icon: Icon(Icons.map_rounded),
+            label: 'Map',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_rounded),
@@ -476,7 +701,6 @@ class _DashboardCard extends StatelessWidget {
   final String? subtitle;
   final IconData icon;
   final Color iconBackground;
-  final Widget? child;
   final VoidCallback? onTap;
   final bool isDarkMode;
 
@@ -485,7 +709,6 @@ class _DashboardCard extends StatelessWidget {
     required this.icon,
     required this.iconBackground,
     this.subtitle,
-    this.child,
     this.onTap,
     required this.isDarkMode,
   });
@@ -499,6 +722,7 @@ class _DashboardCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(24),
       onTap: onTap,
       child: Container(
+        height: 180, // Increased from 150 to show full text
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: isDarkMode ? AppTheme.glassDarkMedium : Colors.white,
@@ -518,6 +742,7 @@ class _DashboardCard extends StatelessWidget {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Container(
               padding: const EdgeInsets.all(8),
@@ -527,29 +752,34 @@ class _DashboardCard extends StatelessWidget {
               ),
               child: Icon(icon, size: 20),
             ),
-            const SizedBox(height: 10),
-            Text(
-              title,
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-                color: titleColor,
-              ),
-            ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                subtitle!,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: subtitleColor,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: titleColor,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-            ],
-            if (child != null) ...[
-              const SizedBox(height: 8),
-              child!,
-            ],
+                if (subtitle != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    subtitle!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: subtitleColor,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
           ],
         ),
       ),

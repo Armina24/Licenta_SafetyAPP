@@ -43,9 +43,7 @@ class AppTheme {
         seedColor: seedColor,
         brightness: Brightness.dark,
         // Override specific colors for consistency
-        background: darkGradientTop,
         surface: glassDarkMedium,
-        onBackground: textPrimary,
         onSurface: textPrimary,
       ),
       // AppBar
@@ -184,7 +182,7 @@ class AppTheme {
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return accentOrange.withOpacity(0.5);
+            return accentOrange.withValues(alpha: 0.5);
           }
           return glassBorder;
         }),
