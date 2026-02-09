@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:quick_actions/quick_actions.dart';
+import 'package:vibration/vibration.dart';
 import 'services/emergency_service.dart';
 import 'services/shake_detection_service.dart';
 import 'services/alert_manager.dart';
@@ -9,6 +12,9 @@ import 'services/audio_yamnet/audio_threat_detection_service.dart';
 import 'ui/scaffold_wrapper.dart';
 import 'ui/share_location_dialog.dart';
 import 'config/app_theme.dart';
+import 'services/background_sound_service.dart';
+import 'features/fake_call/fake_call_menu_screen.dart';
+import 'features/fake_call/fake_call_scenario.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -31,6 +37,7 @@ class _HomePageState extends State<HomePage> {
   late final EmergencyService _emergencyService;
   late final ShakeDetectionService _shakeDetectionService;
   late final AudioThreatDetectionService _threatDetectionService;
+  late final QuickActions _quickActions;
 
   void _onBottomNavTap(int index) {
     setState(() => _selectedIndex = index);
@@ -84,7 +91,7 @@ class _HomePageState extends State<HomePage> {
         setState(() {
           _isSoundMonitoringActive = true;
         });
-        debugPrint('🎙️ Audio monitoring started');
+        debugPrint('Audio monitoring started');
         return;
       }
     } catch (e) {
@@ -104,13 +111,13 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         _isSoundMonitoringActive = false;
       });
-      debugPrint('🎙️ Audio monitoring stopped');
+      debugPrint('Audio monitoring stopped');
     } catch (e) {
       debugPrint('Error stopping audio monitoring: $e');
     }
   }
 
-  /// Toggle sound monitoring independently
+  /// Toggle sound monitoring independently (foreground with mic icon visible)
   Future<void> _toggleSoundMonitoring() async {
     final newState = !_isSoundMonitoringActive;
     
@@ -147,7 +154,7 @@ class _HomePageState extends State<HomePage> {
     // Automatically enable sound monitoring when safety shield is activated
     await _enableAudioMonitoring();
     
-    debugPrint('🛡️ Safety Shield ACTIVATED - All monitoring services enabled');
+    debugPrint('Safety Shield ACTIVATED - All monitoring services enabled');
   }
 
   /// Disable all safety monitoring services
@@ -158,7 +165,7 @@ class _HomePageState extends State<HomePage> {
     // Stop audio monitoring
     await _disableAudioMonitoring();
     
-    debugPrint('🛡️ Safety Shield DEACTIVATED - All monitoring services disabled');
+    debugPrint('Safety Shield DEACTIVATED - All monitoring services disabled');
   }
 
   /// Toggle the Safety Shield on/off
@@ -178,7 +185,7 @@ class _HomePageState extends State<HomePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('🛡️ Safety Shield Activated - Monitoring enabled'),
+            content: Text('Safety Shield Activated - Monitoring enabled'),
             duration: Duration(seconds: 2),
           ),
         );
@@ -217,21 +224,106 @@ class _HomePageState extends State<HomePage> {
     
     // Load Safety Shield state and apply it
     _loadSafetyShieldState();
+    
+    // Initialize Quick Actions
+    _initializeQuickActions();
+  }
+  
+  /// Initialize Quick Actions for app shortcuts
+  void _initializeQuickActions() {
+    _quickActions = const QuickActions();
+    
+    // Set up shortcut items
+    _quickActions.setShortcutItems(<ShortcutItem>[
+      const ShortcutItem(
+        type: 'action_social',
+        localizedTitle: 'Social Call',
+        icon: 'icon_social',
+      ),
+      const ShortcutItem(
+        type: 'action_emergency',
+        localizedTitle: 'Emergency Call',
+        icon: 'icon_safety',
+      ),
+    ]);
+    
+    // Handle shortcut actions
+    _quickActions.initialize((String shortcutType) {
+      _handleQuickAction(shortcutType);
+    });
+  }
+  
+  /// Handle quick action shortcuts with realism delay
+  Future<void> _handleQuickAction(String shortcutType) async {
+    if (!mounted) return;
+    
+    debugPrint('Quick Action triggered: $shortcutType');
+    
+    // 1. Immediate Feedback
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Command received. Call incoming in 5 seconds...'),
+        duration: Duration(seconds: 5),
+        backgroundColor: Colors.blueGrey,
+      ),
+    );
+    
+    // 2. Delay for realism (allows putting phone in pocket)
+    await Future.delayed(const Duration(seconds: 5));
+    
+    // Safety check after delay
+    if (!mounted) return;
+    
+    // 3. Vibration to simulate phone starting to ring
+    try {
+      final hasVibrator = await Vibration.hasVibrator();
+      if (hasVibrator == true) {
+        await Vibration.vibrate(duration: 500);
+      }
+    } catch (e) {
+      debugPrint('Vibration error: $e');
+    }
+    
+    // Safety check before navigation
+    if (!mounted) return;
+    
+    // 4. Navigate to incoming call screen (realistic ring screen)
+    FakeCallScenario scenario;
+    switch (shortcutType) {
+      case 'action_social':
+        scenario = FakeCallScenario.social;
+        break;
+      case 'action_emergency':
+        scenario = FakeCallScenario.safety;
+        break;
+      default:
+        debugPrint('Unknown quick action: $shortcutType');
+        return;
+    }
+    
+    // Use mounted check before using context
+    if (!mounted) return;
+    
+    Navigator.pushNamed(
+      context,
+      '/incoming_call',
+      arguments: scenario,
+    );
   }
   
   /// Called when a threat is detected
   void _onThreatDetected(ThreatDetectionEvent event) {
-    debugPrint('🚨 Threat detected: ${event.threatType}');
+    debugPrint('Threat detected: ${event.threatType}');
   }
 
   /// Called when pre-alarm is confirmed
   void _onPreAlarmConfirmed(ThreatDetectionEvent event) {
-    debugPrint('✓ Pre-alarm confirmed - executing SOS');
+    debugPrint('Pre-alarm confirmed - executing SOS');
   }
 
   /// Called when pre-alarm is cancelled
   void _onPreAlarmCancelled(ThreatDetectionEvent event, String reason) {
-    debugPrint('✓ Pre-alarm cancelled: $reason');
+    debugPrint('Pre-alarm cancelled: $reason');
   }
 
   /// Called when dangerous shake is detected (fall or struggle)
@@ -622,6 +714,63 @@ class _HomePageState extends State<HomePage> {
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    // Row 4: Smart Fake Call (Full Width)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const FakeCallMenuScreen(),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isDarkMode
+                              ? AppTheme.glassDarkMedium
+                              : const Color(0xFFE3F2FD), // Pale blue for light mode
+                          foregroundColor: isDarkMode
+                              ? AppTheme.textPrimary
+                              : const Color(0xFF1F1F1F),
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(
+                              color: isDarkMode
+                                  ? AppTheme.glassBorder
+                                  : const Color(0xFFBBDEFB),
+                              width: 1.5,
+                            ),
+                          ),
+                          elevation: 1,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.phone_forwarded,
+                              size: 20,
+                              color: isDarkMode ? Colors.lightBlue : Colors.blue.shade700,
+                            ),
+                            const SizedBox(width: 10),
+                            Flexible(
+                              child: Text(
+                                'Smart Fake Call',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                  color: isDarkMode ? AppTheme.textPrimary : const Color(0xFF1F1F1F),
                                 ),
                                 textAlign: TextAlign.center,
                               ),

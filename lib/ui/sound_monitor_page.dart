@@ -5,6 +5,7 @@ import '../services/audio_YAMNet/audio_threat_detection_service.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'sound_detection_dialog.dart';
+import '../services/background_sound_service.dart';
 
 class SoundMonitorPage extends StatefulWidget {
   const SoundMonitorPage({super.key});
@@ -16,6 +17,7 @@ class SoundMonitorPage extends StatefulWidget {
 class _SoundMonitorPageState extends State<SoundMonitorPage> {
   bool _fgMonitoring = false;    //monitorizare doar cand e deschisa pagina
   bool _bgMonitoring = false;    //monitorizare in bg (via service)
+  bool _trialBgService = false;  //trial service using BackgroundSoundService
   String _lastEvent = 'Nimic detectat încă';
   late final AudioThreatDetectionService _threatDetectionService;
 
@@ -199,6 +201,31 @@ class _SoundMonitorPageState extends State<SoundMonitorPage> {
               ),
             ),
 
+            const SizedBox(height: 24),
+
+            // 2.5) Buton de test pentru noul serviciu simplu (heartbeat)
+            ElevatedButton(
+              onPressed: () async {
+                if (_trialBgService) {
+                  await BackgroundSoundService.instance.stop();
+                  setState(() {
+                    _trialBgService = false;
+                    _lastEvent = 'Serviciu de test (heartbeat) OPRIT';
+                  });
+                } else {
+                  await BackgroundSoundService.instance.initialize();
+                  setState(() {
+                    _trialBgService = true;
+                    _lastEvent = 'Serviciu de test (heartbeat) PORNIT';
+                  });
+                }
+              },
+              child: Text(
+                _trialBgService
+                    ? 'Oprește serviciul de test (heartbeat)'
+                    : 'Pornește serviciul de test (heartbeat)',
+              ),
+            ),
             const SizedBox(height: 24),
 
             // 2) Buton pentru monitorizare în FUNDAL (prin background service)

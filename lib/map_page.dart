@@ -159,6 +159,7 @@ class _MapPageState extends State<MapPage> {
                 urlTemplate:
                     'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                 subdomains: const ['a', 'b', 'c'],
+                userAgentPackageName: 'com.example.safety_app',
               ),
               MarkerLayer(
                 markers: [

@@ -15,6 +15,7 @@ class SafetyTimerService {
   static const String _keyTimerActive = 'safety_timer_active';
   static const String _keyTimerEndTime = 'safety_timer_end_time'; // Unix milliseconds
   static const String _keyCheckInNotified = 'safety_timer_check_in_notified'; // Unix milliseconds
+  static const String _keyTimerTotalMinutes = 'safety_timer_total_minutes';
 
   // Configuration
   static const Duration _checkInWarningDuration = Duration(minutes: 5); // Notify 5 min before
@@ -26,6 +27,7 @@ class SafetyTimerService {
   bool _isActive = false;
   DateTime? _timerEndTime;
   DateTime? _lastCheckInNotificationTime;
+  int? _timerTotalMinutes;
 
   // Callbacks
   final ValueNotifier<SafetyTimerState?> _stateNotifier = ValueNotifier<SafetyTimerState?>(null);
@@ -47,6 +49,7 @@ class SafetyTimerService {
     final isActive = prefs.getBool(_keyTimerActive) ?? false;
     final endTimeMs = prefs.getInt(_keyTimerEndTime);
     final checkInNotifiedMs = prefs.getInt(_keyCheckInNotified);
+    _timerTotalMinutes = prefs.getInt(_keyTimerTotalMinutes);
 
     if (isActive && endTimeMs != null) {
       _timerEndTime = DateTime.fromMillisecondsSinceEpoch(endTimeMs);
@@ -76,12 +79,14 @@ class SafetyTimerService {
     _timerEndTime = DateTime.now().add(duration);
     _lastCheckInNotificationTime = null;
     _isActive = true;
+    _timerTotalMinutes = duration.inMinutes;
 
     // Save to SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyTimerActive, true);
     await prefs.setInt(_keyTimerEndTime, _timerEndTime!.millisecondsSinceEpoch);
     await prefs.remove(_keyCheckInNotified); // Reset check-in notification
+    await prefs.setInt(_keyTimerTotalMinutes, _timerTotalMinutes!);
 
     debugPrint('🛡️ Safety Timer started: $_timerEndTime (duration: ${duration.inMinutes}m)');
     _onTimerEvent?.call(SafetyTimerEvent.timerStarted);
@@ -99,9 +104,13 @@ class SafetyTimerService {
     _timerEndTime = _timerEndTime!.add(additionalDuration);
     _lastCheckInNotificationTime = null; // Reset check-in notification
 
+    final remainingMinutes = _timerEndTime!.difference(DateTime.now()).inMinutes;
+    _timerTotalMinutes = (_timerTotalMinutes ?? remainingMinutes) + additionalDuration.inMinutes;
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyTimerEndTime, _timerEndTime!.millisecondsSinceEpoch);
     await prefs.remove(_keyCheckInNotified);
+    await prefs.setInt(_keyTimerTotalMinutes, _timerTotalMinutes ?? 0);
 
     debugPrint('⏱️ Safety Timer extended to: $_timerEndTime');
     _onTimerEvent?.call(SafetyTimerEvent.timerExtended);
@@ -119,11 +128,13 @@ class SafetyTimerService {
     _timerEndTime = null;
     _lastCheckInNotificationTime = null;
     _timerTick?.cancel();
+    _timerTotalMinutes = null;
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyTimerActive, false);
     await prefs.remove(_keyTimerEndTime);
     await prefs.remove(_keyCheckInNotified);
+    await prefs.remove(_keyTimerTotalMinutes);
 
     debugPrint('✅ Safety Timer stopped');
     _onTimerEvent?.call(SafetyTimerEvent.timerStopped);
@@ -191,11 +202,13 @@ class SafetyTimerService {
     _isActive = false;
     _timerEndTime = null;
     _lastCheckInNotificationTime = null;
+    _timerTotalMinutes = null;
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyTimerActive, false);
     await prefs.remove(_keyTimerEndTime);
     await prefs.remove(_keyCheckInNotified);
+    await prefs.remove(_keyTimerTotalMinutes);
 
     _onTimerEvent?.call(SafetyTimerEvent.sosTriggered);
 
@@ -223,6 +236,7 @@ class SafetyTimerService {
         remainingSeconds: 0,
         endTime: _timerEndTime!,
         isCheckInWarning: false,
+        totalMinutes: _timerTotalMinutes ?? 0,
       );
     }
 
@@ -231,6 +245,7 @@ class SafetyTimerService {
       remainingSeconds: remaining.inSeconds,
       endTime: _timerEndTime!,
       isCheckInWarning: remaining <= _checkInWarningDuration,
+      totalMinutes: _timerTotalMinutes ?? remaining.inMinutes,
     );
   }
 
@@ -265,12 +280,14 @@ class SafetyTimerState {
   final int remainingSeconds; // Time left on timer
   final DateTime endTime; // When timer will expire
   final bool isCheckInWarning; // True when 5 minutes or less remaining
+  final int totalMinutes; // Total duration when timer started/extended
 
   SafetyTimerState({
     required this.isActive,
     required this.remainingSeconds,
     required this.endTime,
     required this.isCheckInWarning,
+    required this.totalMinutes,
   });
 
   String get remainingTimeFormatted {

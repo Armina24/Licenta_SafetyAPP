@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
 import 'services/auth_service.dart';
 
 class LoginPage extends StatefulWidget {
@@ -39,10 +40,12 @@ class _LoginPageState extends State<LoginPage> {
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/home');
     } on AuthException catch (err) {
+      developer.log('AuthException: ${err.message}', error: err);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(err.message)),
       );
-    } catch (_) {
+    } catch (err, stackTrace) {
+      developer.log('Login error: $err', error: err, stackTrace: stackTrace);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Nu s-a putut face log in. Încearcă din nou.')),
       );

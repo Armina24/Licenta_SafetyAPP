@@ -142,26 +142,13 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
                   Column(
                     children: [
                       // Timer value
-                      Container(
-                        padding: const EdgeInsets.all(32),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isWarning
-                              ? Colors.red.withValues(alpha: 0.1)
-                              : Colors.blue.withValues(alpha: 0.1),
-                          border: Border.all(
-                            color: isWarning ? Colors.red : Colors.blue,
-                            width: 3,
-                          ),
-                        ),
-                        child: Text(
-                          currentState!.remainingTimeFormatted,
-                          style: TextStyle(
-                            fontSize: 56,
-                            fontWeight: FontWeight.bold,
-                            color: isWarning ? Colors.red : Colors.blue,
-                            fontFamily: 'Courier',
-                          ),
+                      Text(
+                        currentState!.remainingTimeFormatted,
+                        style: TextStyle(
+                          fontSize: 45,
+                          fontWeight: FontWeight.bold,
+                          color: isWarning ? Colors.red : const Color(0xFFFF8C42),
+                          fontFamily: 'Courier',
                         ),
                       ),
 

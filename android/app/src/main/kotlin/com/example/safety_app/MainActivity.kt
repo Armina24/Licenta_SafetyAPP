@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -22,16 +23,19 @@ import io.flutter.plugin.common.MethodChannel
 import java.util.concurrent.atomic.AtomicBoolean
 
 class MainActivity : FlutterActivity() {
-    private val channelName = "safety_app/sms"
+    private val smsChannelName = "safety_app/sms"
+    private val ringerModeChannelName = "com.safety_app/ringer_mode"
     private val smsPermission = Manifest.permission.SEND_SMS
     private val requestCode = 2001
     private val handler = Handler(Looper.getMainLooper())
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        
+        // Setup SMS channel
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
-            channelName
+            smsChannelName
         ).setMethodCallHandler { call, result ->
             when (call.method) {
                 "sendSms" -> {
@@ -54,7 +58,7 @@ class MainActivity : FlutterActivity() {
                         SmsManager.getDefault()
                     }
 
-                    val sentAction = "$channelName.SMS_SENT.${System.currentTimeMillis()}"
+                    val sentAction = "$smsChannelName.SMS_SENT.${System.currentTimeMillis()}"
                     val intent = Intent(sentAction)
                     val sentIntent = PendingIntent.getBroadcast(
                         this,
@@ -110,6 +114,26 @@ class MainActivity : FlutterActivity() {
                         }
                         timeoutRunnable?.let { handler.removeCallbacks(it) }
                         result.error("SMS_ERROR", e.message ?: "Eroare necunoscută la trimiterea SMS-ului.", null)
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
+        
+        // Setup Ringer Mode channel
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            ringerModeChannelName
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "getRingerMode" -> {
+                    try {
+                        val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                        val ringerMode = audioManager.ringerMode
+                        // Return: 0 = RINGER_MODE_SILENT, 1 = RINGER_MODE_VIBRATE, 2 = RINGER_MODE_NORMAL
+                        result.success(ringerMode)
+                    } catch (e: Exception) {
+                        result.error("RINGER_MODE_ERROR", e.message, null)
                     }
                 }
                 else -> result.notImplemented()

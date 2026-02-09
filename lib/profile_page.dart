@@ -51,20 +51,19 @@ class _ProfilePageState extends State<ProfilePage> {
       _fullName = fullName;
       _profileImagePath = imagePath;
       _nameEditController.text = fullName ?? '';
+      _isLoading = false; // Show UI immediately with cached data
     });
 
+    // Fetch fresh data from server in background (non-blocking)
     try {
       final userData = await AuthService.instance.fetchCurrentUser();
       if (!mounted) return;
       setState(() {
         _userData = userData;
-        _isLoading = false;
       });
     } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-      });
+      // Silently fail - we already have cached data
+      debugPrint('Failed to fetch user data from server: $e');
     }
   }
 

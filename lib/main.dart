@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:quick_actions/quick_actions.dart';
 
 import 'services/emergency_service.dart';
 import 'services/notification_service.dart';
 import 'services/background_service.dart';
+import 'services/background_sound_service.dart';
 import 'services/alert_manager.dart';
 import 'services/safety_timer_service.dart';
 import 'config/app_theme.dart';
@@ -21,6 +23,9 @@ import 'profile_page.dart';
 import 'ui/sound_monitor_page.dart';
 import 'ui/safety_timer_page.dart';
 import 'ui/recordings_viewer_page.dart';
+import 'features/fake_call/active_call_screen.dart';
+import 'features/fake_call/incoming_call_screen.dart';
+import 'features/fake_call/fake_call_scenario.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,6 +63,9 @@ void main() async {
   );
 
   await AppBackgroundService.instance.initialize();  //pornim serviciul de background
+
+  // Start dedicated background sound monitoring (foreground service)
+  await BackgroundSoundService.instance.initialize();
 
   // Permisiunea SEND_SMS va fi cerută de canalul nativ la nevoie.
 
@@ -129,6 +137,20 @@ class _MyAppState extends State<MyApp> {
         '/soundMonitor': (_) => const SoundMonitorPage(),
         '/safetyTimer': (_) => const SafetyTimerPage(),
         '/recordings': (_) => const RecordingsViewerPage(),
+        '/fake_call_social': (_) => const ActiveCallScreen(scenario: FakeCallScenario.social),
+        '/fake_call_safety': (_) => const ActiveCallScreen(scenario: FakeCallScenario.safety),
+      },
+      onGenerateRoute: (settings) {
+        // Handle /incoming_call route with arguments
+        if (settings.name == '/incoming_call') {
+          final scenario = settings.arguments as FakeCallScenario?;
+          if (scenario != null) {
+            return MaterialPageRoute(
+              builder: (_) => IncomingCallScreen(scenario: scenario),
+            );
+          }
+        }
+        return null;
       },
     );
   }

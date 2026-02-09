@@ -64,22 +64,38 @@ dependencies:
 
   tflite_flutter: ^0.12.1
 
+  wakelock_plus: ^1.1.0
+
   #pentru shake function
   shake: ^3.0.0
   vibration: ^3.1.4
   
   # pentru black box recorder
   camera: ^0.11.0
-  path_provider: ^2.1.0
+  path_provider: ^2.1.2
   just_audio: ^0.9.36
   sensors_plus: ^6.0.0
   # untuk sharing location dan upload profile picture
   share_plus: ^7.2.0
   image_picker: ^1.0.0
 
+  # untuk hyper-realistic call simulator
+  audioplayers: ^6.1.0
+  audio_session: ^0.1.21
+
+  #pentru fake_call
+  dart_openai: ^6.1.1
+  speech_to_text: ^7.0.0
+  
+  # pentru quick actions (app shortcuts)
+  quick_actions: ^1.0.7
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.3.10
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -101,6 +117,7 @@ flutter:
   assets:
     - assets/models/1.tflite
     - assets/models/yamnet_class_map.csv
+    - assets/sounds/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -132,3 +149,19 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: true
+  image_path: "assets/app_logo.png" 
+  min_sdk_android: 21
+
+flutter_native_splash:
+  color: "#F6E2D8"
+  image: assets/app_logo.png
+  android_12:
+    image: assets/app_logo.png
+    color: "#F6E2D8"
+  fullscreen: true
+  android_gravity: center
+  ios: true
+  web: false 
