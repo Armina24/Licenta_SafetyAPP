@@ -282,7 +282,7 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
                       // Preset timer buttons
                       _buildTimerButton(
                         label: '15 minutes',
-                        duration: 15,
+                        duration: 6,
                         icon: Icons.directions_run,
                         description: 'Quick jog or errand',
                         isDarkMode: isDarkMode,

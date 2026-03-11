@@ -1,0 +1,4 @@
+enum FakeCallScenario {
+  social,
+  safety,
+}

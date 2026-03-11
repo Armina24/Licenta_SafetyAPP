@@ -72,7 +72,7 @@ dependencies:
   
   # pentru black box recorder
   camera: ^0.11.0
-  path_provider: ^2.1.2
+  path_provider: ^2.1.5
   just_audio: ^0.9.36
   sensors_plus: ^6.0.0
   # untuk sharing location dan upload profile picture
@@ -82,6 +82,7 @@ dependencies:
   # untuk hyper-realistic call simulator
   audioplayers: ^6.1.0
   audio_session: ^0.1.21
+  record: ^6.2.0
 
   #pentru fake_call
   dart_openai: ^6.1.1
@@ -89,6 +90,9 @@ dependencies:
   
   # pentru quick actions (app shortcuts)
   quick_actions: ^1.0.7
+
+  # pentru accesul la contactele din telefon
+  flutter_contacts: ^1.1.1
 
 dev_dependencies:
   flutter_test:

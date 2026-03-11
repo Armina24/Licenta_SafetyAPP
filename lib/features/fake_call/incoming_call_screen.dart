@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:vibration/vibration.dart';
 import 'fake_call_scenario.dart';
-import 'active_call_screen.dart';
+import 'openai_fake_call_screen.dart';
 import '../../services/ringer_mode_service.dart';
 
 /// Incoming call screen that mimics native iOS/Android incoming call UI
@@ -111,10 +111,10 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
     if (!mounted) return;
 
-    // Navigate to active call screen
+    // Navigate to OpenAI fake call screen
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (context) => ActiveCallScreen(
+        builder: (context) => OpenAIFakeCallScreen(
           scenario: widget.scenario,
         ),
       ),
@@ -241,6 +241,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                     // Caller name
                     Text(
                       _getCallerName(),
+                      textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 36,
@@ -254,6 +255,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                     // Caller subtitle
                     Text(
                       _getCallerSubtitle(),
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.8),
                         fontSize: 16,

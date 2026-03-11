@@ -26,6 +26,7 @@ import 'ui/recordings_viewer_page.dart';
 import 'features/fake_call/active_call_screen.dart';
 import 'features/fake_call/incoming_call_screen.dart';
 import 'features/fake_call/fake_call_scenario.dart';
+import 'features/fake_call_ai/demo_entry.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -139,6 +140,7 @@ class _MyAppState extends State<MyApp> {
         '/recordings': (_) => const RecordingsViewerPage(),
         '/fake_call_social': (_) => const ActiveCallScreen(scenario: FakeCallScenario.social),
         '/fake_call_safety': (_) => const ActiveCallScreen(scenario: FakeCallScenario.safety),
+        '/fake_call_ai_demo': (_) => const FakeCallAIDemoEntry(),
       },
       onGenerateRoute: (settings) {
         // Handle /incoming_call route with arguments

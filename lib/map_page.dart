@@ -4,8 +4,6 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'services/location_service.dart';
-import 'services/connectivity_service.dart';
-import 'services/sms_service.dart';
 import 'ui/scaffold_wrapper.dart';
 import 'config/app_theme.dart';
 
@@ -21,16 +19,11 @@ class _MapPageState extends State<MapPage> {
 
   LatLng? _currentLatLng;
   bool _hasInternet = true;
-  bool _hadInternetLastTime = true;
-
-  List<String> _emergencyContacts = [];
 
   @override
   void initState() {
     super.initState();
     _initLocation();
-    _listenConnectivity();
-    _loadContacts();
   }
 
   Future<void> _initLocation() async {
@@ -46,57 +39,6 @@ class _MapPageState extends State<MapPage> {
           _currentLatLng = LatLng(p.latitude, p.longitude);
         });
       });
-    }
-  }
-
-  void _listenConnectivity() {
-    ConnectivityService.instance.onConnectivityChanged.listen((hasNet) async {
-      setState(() {
-        _hasInternet = hasNet;
-      });
-
-      // dacă tocmai ai pierdut netul (erai online și acum nu mai ești)
-      if (!hasNet && _hadInternetLastTime) {
-        await _sendLocationSms(autoTrigger: true);
-      }
-
-      _hadInternetLastTime = hasNet;
-    });
-  }
-
-  Future<void> _loadContacts() async {
-    final contacts = await SmsService.instance.loadEmergencyContacts();
-    if (!mounted) return;
-    setState(() {
-      _emergencyContacts = contacts;
-    });
-  }
-
-  Future<void> _sendLocationSms({bool autoTrigger = false}) async {
-    if (_currentLatLng == null) return;
-    if (_emergencyContacts.isEmpty) {
-      if (mounted && !autoTrigger) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Nu ai contacte de urgență setate.')),
-        );
-      }
-      return;
-    }
-
-    final sent = await SmsService.instance.sendLocationToContactsSilently(
-      phoneNumbers: _emergencyContacts,
-      latitude: _currentLatLng!.latitude,
-      longitude: _currentLatLng!.longitude,
-    );
-
-    if (mounted && !autoTrigger) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(sent
-              ? 'Am trimis locația ta prin SMS.'
-              : 'Nu am putut trimite SMS-ul. Verifică permisiunea și semnalul.'),
-        ),
-      );
     }
   }
 
@@ -176,23 +118,6 @@ class _MapPageState extends State<MapPage> {
                 ],
               ),
             ],
-          ),
-        ),
-        Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-          child: ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size.fromHeight(48),
-              backgroundColor: AppTheme.accentBlue,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-            onPressed: _sendLocationSms,
-            icon: const Icon(Icons.sms),
-            label: const Text('Trimite locația mea prin SMS'),
           ),
         ),
       ],
