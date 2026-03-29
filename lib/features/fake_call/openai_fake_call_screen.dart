@@ -24,7 +24,7 @@ class OpenAIFakeCallScreen extends StatefulWidget {
 
 class _OpenAIFakeCallScreenState extends State<OpenAIFakeCallScreen>
     with SingleTickerProviderStateMixin {
-  static const String _openAIKey = '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';
+  static const String _openAIKey = '';
 
   late final AudioPlayer _audioPlayer;
   final AudioRecorder _recorder = AudioRecorder();
