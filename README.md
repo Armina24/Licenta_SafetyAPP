@@ -1,11 +1,5 @@
 # Safety App - Personal Safety and Emergency Response System
 
-**Deadline for documentation:** 19.01.2026, W14
-
-The full documentation comprises **7 pages** and represents one point of the final laboratory grade.
-
----
-
 ## 1. Introduction
 
 ### What?
