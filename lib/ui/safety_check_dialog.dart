@@ -30,9 +30,11 @@ class _SafetyCheckDialogState extends State<SafetyCheckDialog> {
   }
 
   void _startCountdown() {
-    _countdownTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+    _countdownTimer = Timer.periodic(const Duration(milliseconds: 100), (
+      timer,
+    ) {
       if (!mounted) return;
-      
+
       setState(() {
         _remainingTime = _remainingTime - const Duration(milliseconds: 100);
         if (_remainingTime.isNegative) {
@@ -74,7 +76,8 @@ class _SafetyCheckDialogState extends State<SafetyCheckDialog> {
   @override
   Widget build(BuildContext context) {
     final totalSeconds = widget.countdownDuration.inSeconds.toDouble();
-    final elapsedSeconds = (widget.countdownDuration - _remainingTime).inMilliseconds / 1000.0;
+    final elapsedSeconds =
+        (widget.countdownDuration - _remainingTime).inMilliseconds / 1000.0;
     final progress = (elapsedSeconds / totalSeconds).clamp(0.0, 1.0);
     final secondsRemaining = _remainingTime.inSeconds;
 
@@ -104,14 +107,10 @@ class _SafetyCheckDialogState extends State<SafetyCheckDialog> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Header with alert icon
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [
-                          Color(0xFFFF6B35),
-                          Color(0xFFFF8C42),
-                        ],
+                        colors: [Color(0xFFFF6B35), Color(0xFFFF8C42)],
                       ),
                       borderRadius: const BorderRadius.only(
                         topLeft: Radius.circular(20),
@@ -147,7 +146,6 @@ class _SafetyCheckDialogState extends State<SafetyCheckDialog> {
                     ),
                   ),
 
-                  // Main content
                   Padding(
                     padding: const EdgeInsets.all(24),
                     child: Column(
@@ -172,7 +170,6 @@ class _SafetyCheckDialogState extends State<SafetyCheckDialog> {
                         ),
                         const SizedBox(height: 24),
 
-                        // Countdown progress indicator
                         Column(
                           children: [
                             ClipRRect(
@@ -203,7 +200,6 @@ class _SafetyCheckDialogState extends State<SafetyCheckDialog> {
                         ),
                         const SizedBox(height: 32),
 
-                        // I am OK button
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
@@ -228,7 +224,6 @@ class _SafetyCheckDialogState extends State<SafetyCheckDialog> {
                         ),
                         const SizedBox(height: 12),
 
-                        // Send SOS button
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton(

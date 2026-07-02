@@ -1,4 +1,1 @@
-enum FakeCallScenario {
-  social,
-  safety,
-}
+enum FakeCallScenario { social, safety }

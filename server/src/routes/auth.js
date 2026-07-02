@@ -157,6 +157,174 @@ router.get('/me', requireAuth, async (req, res) => {
   });
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+  channel: z.enum(['email', 'sms']),
+});
+
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email, channel } = forgotPasswordSchema.parse(req.body);
+
+    const userResult = await query(
+      `SELECT id FROM users WHERE email = $1`,
+      [email.toLowerCase()]
+    );
+    const user = userResult.rows[0];
+
+    if (!user) {
+
+      return res.json({ message: 'Dacă adresa există, codul a fost trimis.' });
+    }
+
+    let phoneNumber = null;
+    if (channel === 'sms') {
+      const profileResult = await query(
+        `SELECT phone_number FROM user_profiles WHERE user_id = $1`,
+        [user.id]
+      );
+      phoneNumber = profileResult.rows[0]?.phone_number;
+      if (!phoneNumber) {
+        return res.status(422).json({
+          message: 'Nu există un număr de telefon asociat contului. Alege email.',
+        });
+      }
+    }
+
+    await query(
+      `UPDATE password_reset_tokens SET used = TRUE WHERE user_id = $1 AND used = FALSE`,
+      [user.id]
+    );
+
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const codeHash = await bcrypt.hash(code, 10);
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await query(
+      `INSERT INTO password_reset_tokens (user_id, code_hash, channel, expires_at)
+       VALUES ($1, $2, $3, $4)`,
+      [user.id, codeHash, channel, expiresAt]
+    );
+
+    if (channel === 'email') {
+      const { sendPasswordResetEmail } = await import('../utils/mailer.js');
+      await sendPasswordResetEmail(email.toLowerCase(), code);
+    } else {
+      const { sendPasswordResetSms } = await import('../utils/sms.js');
+      await sendPasswordResetSms(phoneNumber, code);
+    }
+
+    res.json({ message: 'Dacă adresa există, codul a fost trimis.' });
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Date invalide', issues: err.issues });
+    }
+    console.error('forgot-password error:', err);
+    res.status(500).json({ message: 'Eroare server' });
+  }
+});
+
+const verifyResetCodeSchema = z.object({
+  email: z.string().email(),
+  code: z.string().length(6),
+});
+
+router.post('/verify-reset-code', async (req, res) => {
+  try {
+    const { email, code } = verifyResetCodeSchema.parse(req.body);
+
+    const userResult = await query(
+      `SELECT id FROM users WHERE email = $1`,
+      [email.toLowerCase()]
+    );
+    const user = userResult.rows[0];
+    if (!user) {
+      return res.status(400).json({ message: 'Cod invalid sau expirat.' });
+    }
+
+    const tokenResult = await query(
+      `SELECT id, code_hash
+       FROM password_reset_tokens
+       WHERE user_id = $1
+         AND used = FALSE
+         AND expires_at > NOW()
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [user.id]
+    );
+
+    const tokenRow = tokenResult.rows[0];
+    if (!tokenRow) {
+      return res.status(400).json({ message: 'Cod invalid sau expirat.' });
+    }
+
+    const match = await bcrypt.compare(code, tokenRow.code_hash);
+    if (!match) {
+      return res.status(400).json({ message: 'Cod incorect.' });
+    }
+
+    await query(
+      `UPDATE password_reset_tokens SET used = TRUE WHERE id = $1`,
+      [tokenRow.id]
+    );
+
+    const resetToken = jwt.sign(
+      { sub: user.id, purpose: 'password_reset' },
+      config.jwtAccessSecret,
+      { expiresIn: '15m' }
+    );
+
+    res.json({ resetToken });
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Date invalide', issues: err.issues });
+    }
+    console.error('verify-reset-code error:', err);
+    res.status(500).json({ message: 'Eroare server' });
+  }
+});
+
+const resetPasswordSchema = z.object({
+  resetToken: z.string().min(1),
+  newPassword: z.string().min(8).max(128),
+});
+
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { resetToken, newPassword } = resetPasswordSchema.parse(req.body);
+
+    let payload;
+    try {
+      payload = jwt.verify(resetToken, config.jwtAccessSecret);
+    } catch {
+      return res.status(401).json({ message: 'Token expirat sau invalid.' });
+    }
+
+    if (payload.purpose !== 'password_reset') {
+      return res.status(401).json({ message: 'Token invalid.' });
+    }
+
+    const userId = Number(payload.sub);
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await query(
+      `UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2`,
+      [passwordHash, userId]
+    );
+
+    await query(
+      `DELETE FROM refresh_tokens WHERE user_id = $1`,
+      [userId]
+    );
+
+    res.json({ message: 'Parola a fost resetată cu succes.' });
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Date invalide', issues: err.issues });
+    }
+    console.error('reset-password error:', err);
+    res.status(500).json({ message: 'Eroare server' });
+  }
+});
+
 export default router;
-
-

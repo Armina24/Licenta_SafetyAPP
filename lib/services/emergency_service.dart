@@ -7,6 +7,7 @@ import 'connectivity_service.dart';
 import 'location_service.dart';
 import 'notification_service.dart';
 import 'sms_service.dart';
+import 'alerts_service.dart';
 
 class EmergencyService {
   EmergencyService._internal();
@@ -14,8 +15,7 @@ class EmergencyService {
 
   final LocationService _locationService = LocationService.instance;
   final SmsService _smsService = SmsService.instance;
-  final ConnectivityService _connectivityService =
-      ConnectivityService.instance;
+  final ConnectivityService _connectivityService = ConnectivityService.instance;
   final BlackBoxRecorderService _blackBoxRecorder =
       BlackBoxRecorderService.instance;
 
@@ -34,27 +34,23 @@ class EmergencyService {
 
   Future<void> initialize() async {
     if (_initialized) return;
-    
-    // Initialize black box recorder
+
     await _blackBoxRecorder.initialize();
-    
+
     _lastHadInternet = await _connectivityService.hasInternetNow();
-    _connectivitySubscription =
-        _connectivityService.onConnectivityChanged.listen(
-      (hasInternet) {
-        unawaited(_handleConnectivityChange(hasInternet));
-      },
-    );
+    _connectivitySubscription = _connectivityService.onConnectivityChanged
+        .listen((hasInternet) {
+          unawaited(_handleConnectivityChange(hasInternet));
+        });
     _initialized = true;
   }
 
   Future<void> dispose() async {
     await _connectivitySubscription?.cancel();
     _connectivitySubscription = null;
-    
-    // Stop any active black box recording
+
     await _blackBoxRecorder.stopRecording();
-    
+
     _initialized = false;
   }
 
@@ -67,7 +63,6 @@ class EmergencyService {
   }
 
   Future<EmergencyActionResult> sendManualSos() async {
-    // Start black box recording in background (non-blocking)
     _blackBoxRecorder.startRecording(
       recordingDuration: const Duration(minutes: 5),
       snapshotInterval: const Duration(seconds: 3),
@@ -82,15 +77,16 @@ class EmergencyService {
       );
     }
 
-    final locationReading =
-        await _locationService.acquireLocation(allowLastKnownFallback: true);
+    final locationReading = await _locationService.acquireLocation(
+      allowLastKnownFallback: true,
+    );
     if (!locationReading.isSuccess) {
-      final message = locationReading.errorMessage ??
-          'Nu am putut obține locația curentă.';
+      final message =
+          locationReading.errorMessage ?? 'Nu am putut obține locația curentă.';
       final failureType =
           locationReading.error == LocationFailure.permissionDenied
-              ? EmergencyFailureType.permissionDenied
-              : EmergencyFailureType.locationUnavailable;
+          ? EmergencyFailureType.permissionDenied
+          : EmergencyFailureType.locationUnavailable;
       return EmergencyActionResult(
         success: false,
         failureType: failureType,
@@ -113,22 +109,22 @@ class EmergencyService {
       return EmergencyActionResult(
         success: true,
         failureType: null,
-        userMessage:
-            locationReading.usedLastKnownPosition
-                ? 'Mesajul SOS a fost trimis cu ultima locație cunoscută.'
-                : 'Mesajul SOS a fost trimis către contactele de urgență.',
+        userMessage: locationReading.usedLastKnownPosition
+            ? 'Mesajul SOS a fost trimis cu ultima locație cunoscută.'
+            : 'Mesajul SOS a fost trimis către contactele de urgență.',
         usedLastKnownLocation: locationReading.usedLastKnownPosition,
       );
     }
 
     if (report.hasPartialSuccess) {
-      final failedNumbers =
-          report.failed.map((failure) => failure.phoneNumber).join(', ');
+      final failedNumbers = report.failed
+          .map((failure) => failure.phoneNumber)
+          .join(', ');
       return EmergencyActionResult(
         success: false,
         failureType: EmergencyFailureType.smsPartialFailure,
         userMessage:
-            'Mesajul SOS a fost trimis doar către unii contacte. Nu s-a trimis către: $failedNumbers.',
+            'Mesajul SOS a fost trimis doar către unele contacte. Nu s-a trimis către: $failedNumbers.',
         smsFailures: report.failed,
         usedLastKnownLocation: locationReading.usedLastKnownPosition,
       );
@@ -139,8 +135,9 @@ class EmergencyService {
         ? EmergencyFailureType.smsFailed
         : EmergencyFailureType.permissionDenied;
 
-    final failureReason =
-        report.failed.isNotEmpty ? report.failed.first.reason : null;
+    final failureReason = report.failed.isNotEmpty
+        ? report.failed.first.reason
+        : null;
 
     final userMessage = permissionGranted
         ? 'Nu am putut trimite mesajul SOS. ${failureReason ?? 'Verifică semnalul și creditul.'}'
@@ -157,7 +154,8 @@ class EmergencyService {
 
   Future<void> _handleConnectivityChange(bool hasInternet) async {
     debugPrint(
-        '[EmergencyService] Connectivity changed. hadInternet=$_lastHadInternet → hasInternet=$hasInternet');
+      '[EmergencyService] Connectivity changed. hadInternet=$_lastHadInternet → hasInternet=$hasInternet',
+    );
     if (!hasInternet && _lastHadInternet) {
       await _handleLostInternet();
     }
@@ -246,8 +244,9 @@ class EmergencyService {
       return result;
     }
 
-    final locationReading =
-        await _locationService.acquireLocation(allowLastKnownFallback: true);
+    final locationReading = await _locationService.acquireLocation(
+      allowLastKnownFallback: true,
+    );
     final message = _buildOfflineManualMessage(locationReading);
 
     final report = await _smsService.sendSmsSilentlyWithReport(
@@ -310,8 +309,7 @@ class EmergencyService {
     final result = EmergencyActionResult(
       success: false,
       failureType: EmergencyFailureType.smsFailed,
-      userMessage:
-          'Nu am putut trimite mesajul offline. $failureReason',
+      userMessage: 'Nu am putut trimite mesajul offline. $failureReason',
       smsFailures: report.failed,
       usedLastKnownLocation: locationReading.usedLastKnownPosition,
     );
@@ -320,8 +318,7 @@ class EmergencyService {
       EmergencyBackgroundEvent(
         timestamp: DateTime.now(),
         type: EmergencyBackgroundEventType.offlineAlertFailed,
-        message:
-            'Nu s-a putut trimite mesajul offline. $failureReason',
+        message: 'Nu s-a putut trimite mesajul offline. $failureReason',
         recipients: contacts,
         failures: report.failed,
         usedLastKnownLocation: locationReading.usedLastKnownPosition,
@@ -413,4 +410,3 @@ enum EmergencyBackgroundEventType {
   offlineAlertSkipped,
   noContacts,
 }
-

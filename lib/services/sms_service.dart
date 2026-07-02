@@ -1,4 +1,3 @@
-// lib/services/sms_service.dart
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
@@ -22,7 +21,6 @@ class SmsService {
     return req.isGranted;
   }
 
-  /// Trimite SMS la un singur număr (deschide aplicația de mesaje).
   Future<void> sendSms({
     required String phoneNumber,
     required String message,
@@ -33,13 +31,9 @@ class SmsService {
       queryParameters: {'body': message},
     );
 
-    if (!await launchUrl(uri)) {
-      // aici poți pune un SnackBar / print pentru eroare
-      // print('Nu am putut deschide aplicația de mesaje.');
-    }
+    if (!await launchUrl(uri)) {}
   }
 
-  /// Trimite același mesaj la mai multe contacte, unul după altul.
   Future<void> sendSmsToMultiple({
     required List<String> phoneNumbers,
     required String message,
@@ -49,7 +43,6 @@ class SmsService {
     }
   }
 
-  /// Trimite SMS direct, în background (Android), fără a deschide aplicația de mesaje.
   Future<bool> sendSmsSilently({
     required String phoneNumber,
     required String message,
@@ -117,10 +110,7 @@ class SmsService {
         );
       } catch (error) {
         failures.add(
-          SmsSendFailure(
-            phoneNumber: number,
-            reason: error.toString(),
-          ),
+          SmsSendFailure(phoneNumber: number, reason: error.toString()),
         );
       }
     }
@@ -142,7 +132,6 @@ class SmsService {
         .toList();
   }
 
-  /// Helper special pentru locație (lat, lon → mesaj frumos).
   Future<void> sendLocationToContacts({
     required List<String> phoneNumbers,
     required double latitude,
@@ -151,7 +140,8 @@ class SmsService {
     final latStr = latitude.toStringAsFixed(6);
     final lonStr = longitude.toStringAsFixed(6);
 
-    final message = '''
+    final message =
+        '''
 Atenție! Acesta este un mesaj automat din aplicația de siguranță.
 
 Ultima mea locație cunoscută:
@@ -162,10 +152,7 @@ Link hartă:
 https://maps.google.com/?q=$latStr,$lonStr
 ''';
 
-    await sendSmsToMultiple(
-      phoneNumbers: phoneNumbers,
-      message: message,
-    );
+    await sendSmsToMultiple(phoneNumbers: phoneNumbers, message: message);
   }
 
   Future<bool> sendLocationToContactsSilently({
@@ -176,7 +163,8 @@ https://maps.google.com/?q=$latStr,$lonStr
     final latStr = latitude.toStringAsFixed(6);
     final lonStr = longitude.toStringAsFixed(6);
 
-    final message = '''
+    final message =
+        '''
 Atenție! Acesta este un mesaj automat din aplicația de siguranță.
 
 Ultima mea locație cunoscută:
@@ -206,27 +194,26 @@ class SmsSendReport {
   });
 
   factory SmsSendReport.empty({required String message}) => SmsSendReport(
-        message: message,
-        successfullySent: const [],
-        failed: const [],
-      );
+    message: message,
+    successfullySent: const [],
+    failed: const [],
+  );
 
   factory SmsSendReport.permissionDenied({
     required List<String> phoneNumbers,
     required String message,
-  }) =>
-      SmsSendReport(
-        message: message,
-        successfullySent: const [],
-        failed: phoneNumbers
-            .map(
-              (number) => SmsSendFailure(
-                phoneNumber: number,
-                reason: 'Permisiunea SEND_SMS nu este acordată.',
-              ),
-            )
-            .toList(),
-      );
+  }) => SmsSendReport(
+    message: message,
+    successfullySent: const [],
+    failed: phoneNumbers
+        .map(
+          (number) => SmsSendFailure(
+            phoneNumber: number,
+            reason: 'Permisiunea SEND_SMS nu este acordată.',
+          ),
+        )
+        .toList(),
+  );
 
   bool get allSent => failed.isEmpty && successfullySent.isNotEmpty;
   bool get hasPartialSuccess =>
@@ -238,8 +225,5 @@ class SmsSendFailure {
   final String phoneNumber;
   final String reason;
 
-  const SmsSendFailure({
-    required this.phoneNumber,
-    required this.reason,
-  });
+  const SmsSendFailure({required this.phoneNumber, required this.reason});
 }

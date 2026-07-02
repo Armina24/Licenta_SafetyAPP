@@ -4,9 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:vibration/vibration.dart';
 
-/// Handles pre-alarm alerts that must work while the app is backgrounded/locked.
-/// Shows a high-priority notification with a countdown and an inline "I'm OK"
-/// action to cancel the pending SOS.
 class AlertManager {
   AlertManager._internal();
   static final AlertManager instance = AlertManager._internal();
@@ -17,7 +14,7 @@ class AlertManager {
   static const String _preAlarmChannelName = 'Safety Pre-Alarms';
   static const String _preAlarmChannelDescription =
       'Heads-up alerts with countdown before sending SOS.';
-  
+
   static const String _timerChannelId = 'safety_timer_channel';
   static const String _timerChannelName = 'Safety Timer';
   static const String _timerChannelDescription =
@@ -43,7 +40,6 @@ class AlertManager {
   VoidCallback? _onCancelled;
   Function(String actionId)? _onTimerAction;
 
-  /// Initialize notification channels and callbacks. Must be called in main().
   Future<void> initialize({
     required Future<void> Function() onSendSos,
     VoidCallback? onCancelled,
@@ -65,9 +61,9 @@ class AlertManager {
 
     final android = _notifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (android != null) {
-      // Pre-alarm channel
       await android.createNotificationChannel(
         const AndroidNotificationChannel(
           _preAlarmChannelId,
@@ -78,8 +74,7 @@ class AlertManager {
           enableVibration: true,
         ),
       );
-      
-      // Safety Timer channel
+
       await android.createNotificationChannel(
         const AndroidNotificationChannel(
           _timerChannelId,
@@ -93,14 +88,14 @@ class AlertManager {
     }
   }
 
-  /// Trigger a pre-alarm with countdown and heads-up notification.
   Future<void> triggerPreAlarm({
     required String source,
     Duration countdown = const Duration(seconds: 15),
   }) async {
-    // Debounce: ignore if a pre-alarm is already running.
     if (_preAlarmActive) {
-      debugPrint('[AlertManager] Pre-alarm already active, ignoring new trigger: $source');
+      debugPrint(
+        '[AlertManager] Pre-alarm already active, ignoring new trigger: $source',
+      );
       return;
     }
 
@@ -114,7 +109,6 @@ class AlertManager {
   }
 
   Future<void> cancelPreAlarm({String? reason}) async {
-    // Cancel state first to prevent race with timer callback
     _preAlarmActive = false;
     _countdownTimer?.cancel();
     _countdownTimer = null;
@@ -132,8 +126,6 @@ class AlertManager {
     }
   }
 
-  // --- Internal helpers ---
-
   void _startCountdown() {
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       _remaining = _remaining - const Duration(seconds: 1);
@@ -145,18 +137,16 @@ class AlertManager {
         return;
       }
 
-      // Update notification text to show remaining seconds
       await _showOrUpdatePreAlarmNotification();
     });
   }
 
   Future<void> _fireSos() async {
-    // Double-check the alarm is still active (prevents race if user cancelled)
     if (!_preAlarmActive) {
       debugPrint('[AlertManager] SOS fire cancelled - alarm was deactivated');
       return;
     }
-    
+
     _preAlarmActive = false;
     await _notifications.cancel(_preAlarmNotificationId);
     try {
@@ -185,11 +175,19 @@ class AlertManager {
       ticker: 'Safety alert',
       visibility: NotificationVisibility.public,
       enableVibration: true,
-      onlyAlertOnce: true, // Prevents extra sound/vibration on updates
-      autoCancel: false, // Keep notification until user acts
-      // Four short pulses to keep it noticeable but not overwhelming
-      vibrationPattern:
-          Int64List.fromList([0, 500, 300, 500, 300, 500, 300, 500]),
+      onlyAlertOnce: true,
+      autoCancel: false,
+
+      vibrationPattern: Int64List.fromList([
+        0,
+        500,
+        300,
+        500,
+        300,
+        500,
+        300,
+        500,
+      ]),
       actions: <AndroidNotificationAction>[
         AndroidNotificationAction(
           _actionCancelId,
@@ -225,7 +223,6 @@ class AlertManager {
   }
 
   Future<void> _processResponse(NotificationResponse response) async {
-    // Handle timer actions
     if (response.payload == _payloadTimerWarning) {
       if (response.actionId == _actionTimerStopId ||
           response.actionId == _actionTimerAdd5Id ||
@@ -236,16 +233,13 @@ class AlertManager {
       return;
     }
 
-    // Handle pre-alarm actions
     if (!_preAlarmActive) return;
 
-    // Action button: cancel pre-alarm
     if (response.actionId == _actionCancelId) {
       await cancelPreAlarm(reason: 'user tapped action');
       return;
     }
 
-    // Default tap: also cancel (keeps behavior simple)
     if (response.notificationResponseType ==
         NotificationResponseType.selectedNotification) {
       await cancelPreAlarm(reason: 'user tapped notification');
@@ -257,17 +251,13 @@ class AlertManager {
       final hasVibrator = await Vibration.hasVibrator();
       if (hasVibrator == false) return;
 
-      // Aggressive short pulses; ends automatically (no repeat).
-      await Vibration.vibrate(pattern: const [0, 500, 300, 500, 300, 500, 300, 500]);
-    } catch (_) {
-      // Ignore vibration failures (some devices lack permission or capability)
-    }
+      await Vibration.vibrate(
+        pattern: const [0, 500, 300, 500, 300, 500, 300, 500],
+      );
+    } catch (_) {}
   }
 
-  /// Show a timer warning notification with action buttons (5min before expiry)
-  Future<void> showTimerWarningNotification({
-    required String timerText,
-  }) async {
+  Future<void> showTimerWarningNotification({required String timerText}) async {
     final androidDetails = AndroidNotificationDetails(
       _timerChannelId,
       _timerChannelName,
@@ -325,12 +315,10 @@ class AlertManager {
     } catch (_) {}
   }
 
-  /// Cancel the timer warning notification
   Future<void> cancelTimerWarning() async {
     await _notifications.cancel(_timerWarningNotificationId);
   }
 
-  /// Update the timer warning notification (called every second to show updated time)
   Future<void> updateTimerWarningNotification({
     required String timerText,
   }) async {
@@ -345,7 +333,7 @@ class AlertManager {
       ticker: 'Safety Timer Warning',
       visibility: NotificationVisibility.public,
       enableVibration: false,
-      onlyAlertOnce: true, // Don't vibrate on update
+      onlyAlertOnce: true,
       autoCancel: false,
       actions: <AndroidNotificationAction>[
         const AndroidNotificationAction(

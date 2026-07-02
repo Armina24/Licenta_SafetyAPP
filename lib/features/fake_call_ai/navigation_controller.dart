@@ -84,7 +84,6 @@ class NavigationController {
         _spokenNow = false;
         _emitCue('Recalculez traseul.');
       } catch (_) {
-        // ignore reroute errors for now
       } finally {
         _offRouteCount = 0;
         _rerouting = false;
@@ -126,7 +125,8 @@ class NavigationController {
 
     if (distToStep > 60) {
       final now = DateTime.now();
-      final last = _lastReassurance ?? now.subtract(const Duration(seconds: 60));
+      final last =
+          _lastReassurance ?? now.subtract(const Duration(seconds: 60));
       if (now.difference(last).inSeconds >= 18) {
         _lastReassurance = now;
         _emitCue(_reassuranceLine());
@@ -195,7 +195,8 @@ class NavigationController {
     final lat1 = _degToRad(a.latitude);
     final lat2 = _degToRad(b.latitude);
 
-    final hav = sin(dLat / 2) * sin(dLat / 2) +
+    final hav =
+        sin(dLat / 2) * sin(dLat / 2) +
         sin(dLon / 2) * sin(dLon / 2) * cos(lat1) * cos(lat2);
     final c = 2 * atan2(sqrt(hav), sqrt(1 - hav));
     return earthRadius * c;

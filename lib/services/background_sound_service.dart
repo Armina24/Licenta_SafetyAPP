@@ -10,8 +10,6 @@ import 'audio_YAMNet/yamnet_service.dart';
 
 import 'package:wakelock_plus/wakelock_plus.dart';
 
-/// Background sound monitoring service with YAMNet threat detection.
-/// Listens to audio in background and identifies threats (screams, crowd, breaking glass).
 class BackgroundSoundService {
   BackgroundSoundService._();
   static final BackgroundSoundService instance = BackgroundSoundService._();
@@ -19,24 +17,25 @@ class BackgroundSoundService {
   Future<void> initialize() async {
     if (!Platform.isAndroid) return;
 
-    // Ensure permissions are granted before starting foreground service.
     final micGranted = await _ensureMicrophonePermission();
     final notifGranted = await _ensureNotificationPermission();
 
     if (!micGranted) {
-      debugPrint('❌ Microphone permission not granted; background sound disabled.');
+      debugPrint(
+        '❌ Microphone permission not granted; background sound disabled.',
+      );
       return;
     }
     if (!notifGranted) {
-      // On Android 13+, notification permission is required to show foreground notification.
-      debugPrint('❌ Notification permission not granted; cannot start foreground service.');
+      debugPrint(
+        '❌ Notification permission not granted; cannot start foreground service.',
+      );
       return;
     }
 
     final service = FlutterBackgroundService();
     final isRunning = await service.isRunning();
     if (isRunning) {
-      // Ask running isolate to stop itself gracefully.
       service.invoke('stopService');
       await Future.delayed(const Duration(milliseconds: 500));
     }
@@ -54,15 +53,16 @@ class BackgroundSoundService {
     );
 
     await service.startService();
-    debugPrint('✅ BackgroundSoundService started as Android foreground service.');
+    debugPrint(
+      '✅ BackgroundSoundService started as Android foreground service.',
+    );
   }
 
-  /// Stop the background sound service if running.
   Future<void> stop() async {
     final service = FlutterBackgroundService();
     final isRunning = await service.isRunning();
     if (!isRunning) return;
-    // Graceful stop via isolate command.
+
     try {
       service.invoke('stopService');
       await Future.delayed(const Duration(milliseconds: 500));
@@ -79,7 +79,6 @@ class BackgroundSoundService {
   }
 
   Future<bool> _ensureNotificationPermission() async {
-    // Android 13+ requires explicit notification permission.
     var status = await Permission.notification.status;
     if (status.isGranted || status.isLimited) return true;
 
@@ -95,7 +94,9 @@ Future<void> _onStart(ServiceInstance service) async {
   }
 
   DartPluginRegistrant.ensureInitialized();
-  debugPrint('🎧 Background sound service isolate started with YAMNet detection.');
+  debugPrint(
+    '🎧 Background sound service isolate started with YAMNet detection.',
+  );
 
   try {
     await WakelockPlus.enable();
@@ -105,8 +106,7 @@ Future<void> _onStart(ServiceInstance service) async {
   }
 
   bool audioMonitoring = false;
-  
-  // Initialize YAMNet model in background isolate before use
+
   debugPrint('🔧 [BG] Initializing YAMNet model in isolate...');
   try {
     await YamnetService.instance.init();
@@ -115,7 +115,6 @@ Future<void> _onStart(ServiceInstance service) async {
     debugPrint('❌ [BG] Failed to initialize YAMNet: $e');
   }
 
-  // Start listening to audio with YAMNet threat detection
   service.on('startAudio').listen((event) async {
     debugPrint('🟢 [BG] startAudio: beginning sound detection with YAMNet');
     if (audioMonitoring) return;
@@ -123,20 +122,25 @@ Future<void> _onStart(ServiceInstance service) async {
     audioMonitoring = true;
 
     try {
-      await AudioMonitorService.instance.startMonitoring(onAlert: (result) {
-        debugPrint('🎧 [BG] Sound detected: Tipete=${result.tipete.toStringAsFixed(4)}, '
+      await AudioMonitorService.instance.startMonitoring(
+        onAlert: (result) {
+          debugPrint(
+            '🎧 [BG] Sound detected: Tipete=${result.tipete.toStringAsFixed(4)}, '
             'Aglomerație=${result.aglomeratie.toStringAsFixed(4)}, '
-            'Spargere=${result.spargere.toStringAsFixed(4)}');
-
-        if (service is AndroidServiceInstance) {
-          service.setForegroundNotificationInfo(
-            title: 'Safety App – Sound Monitor',
-            content: 'Tipete: ${result.tipete.toStringAsFixed(2)}, '
-                'Aglomerație: ${result.aglomeratie.toStringAsFixed(2)}, '
-                'Spargere: ${result.spargere.toStringAsFixed(2)}',
+            'Spargere=${result.spargere.toStringAsFixed(4)}',
           );
-        }
-      });
+
+          if (service is AndroidServiceInstance) {
+            service.setForegroundNotificationInfo(
+              title: 'Safety App – Sound Monitor',
+              content:
+                  'Tipete: ${result.tipete.toStringAsFixed(2)}, '
+                  'Aglomerație: ${result.aglomeratie.toStringAsFixed(2)}, '
+                  'Spargere: ${result.spargere.toStringAsFixed(2)}',
+            );
+          }
+        },
+      );
       debugPrint('✅ [BG] Audio monitoring started');
     } catch (e) {
       debugPrint('❌ [BG] Error starting audio monitoring: $e');
@@ -144,7 +148,6 @@ Future<void> _onStart(ServiceInstance service) async {
     }
   });
 
-  // Stop listening to audio
   service.on('stopAudio').listen((event) async {
     debugPrint('🛑 [BG] stopAudio: stopping sound detection');
     if (!audioMonitoring) return;
@@ -164,17 +167,17 @@ Future<void> _onStart(ServiceInstance service) async {
     }
   });
 
-  // Periodically update notification
   Timer.periodic(const Duration(seconds: 5), (timer) async {
     if (service is AndroidServiceInstance) {
       await service.setForegroundNotificationInfo(
         title: 'Safety App – Sound Monitor',
-        content: audioMonitoring ? 'Listening for threats...' : 'Running in background',
+        content: audioMonitoring
+            ? 'Listening for threats...'
+            : 'Running in background',
       );
     }
   });
 
-  // Listen to stop command
   service.on('stopService').listen((event) async {
     debugPrint('🛑 Background sound service stopped');
     if (audioMonitoring) {

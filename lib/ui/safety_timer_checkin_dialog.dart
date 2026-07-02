@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 class SafetyTimerCheckInDialog extends StatefulWidget {
   final int remainingSeconds;
-  final Function onStopTimer; // User is OK
-  final Function onExtend5; // Extend 5 minutes
-  final Function onExtend15; // Extend 15 minutes
-  final Function onSos; // Emergency - send SOS now
+  final Function onStopTimer;
+  final Function onExtend5;
+  final Function onExtend15;
+  final Function onSos;
 
   const SafetyTimerCheckInDialog({
     super.key,
@@ -49,14 +49,10 @@ class _SafetyTimerCheckInDialogState extends State<SafetyTimerCheckInDialog> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Header
                 Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [
-                        Colors.orange.shade600,
-                        Colors.orange.shade500,
-                      ],
+                      colors: [Colors.orange.shade600, Colors.orange.shade500],
                     ),
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(20),
@@ -100,7 +96,6 @@ class _SafetyTimerCheckInDialogState extends State<SafetyTimerCheckInDialog> {
                   ),
                 ),
 
-                // Content
                 Padding(
                   padding: const EdgeInsets.all(24),
                   child: Column(
@@ -125,7 +120,6 @@ class _SafetyTimerCheckInDialogState extends State<SafetyTimerCheckInDialog> {
                       ),
                       const SizedBox(height: 32),
 
-                      // Timer display
                       Container(
                         padding: const EdgeInsets.symmetric(
                           vertical: 16,
@@ -150,7 +144,6 @@ class _SafetyTimerCheckInDialogState extends State<SafetyTimerCheckInDialog> {
                       ),
                       const SizedBox(height: 24),
 
-                      // Main action buttons
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
@@ -177,7 +170,6 @@ class _SafetyTimerCheckInDialogState extends State<SafetyTimerCheckInDialog> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Extend buttons row
                       Row(
                         children: [
                           Expanded(
@@ -231,7 +223,6 @@ class _SafetyTimerCheckInDialogState extends State<SafetyTimerCheckInDialog> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Emergency button
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton(
@@ -240,10 +231,7 @@ class _SafetyTimerCheckInDialogState extends State<SafetyTimerCheckInDialog> {
                             Navigator.of(context).pop();
                           },
                           style: OutlinedButton.styleFrom(
-                            side: const BorderSide(
-                              color: Colors.red,
-                              width: 2,
-                            ),
+                            side: const BorderSide(color: Colors.red, width: 2),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -262,7 +250,6 @@ class _SafetyTimerCheckInDialogState extends State<SafetyTimerCheckInDialog> {
 
                       const SizedBox(height: 16),
 
-                      // Info message
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(

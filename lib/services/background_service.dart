@@ -7,19 +7,18 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-// Removed unnecessary android-specific import; use types from flutter_background_service
 
 import 'location_service.dart';
 import 'sms_service.dart';
 import 'audio_yamnet/audio_monitor_service.dart';
 
-@pragma('vm:entry-point') // Needed so native background entry can find the class in AOT
+@pragma('vm:entry-point')
 class AppBackgroundService {
   AppBackgroundService._internal();
   static final AppBackgroundService instance = AppBackgroundService._internal();
 
   static const String _keyLastOfflineSmsAt = 'last_offline_sms_at';
-  static const String _keyContacts = 'emergency_contacts'; // CSV: num1,num2,...
+  static const String _keyContacts = 'emergency_contacts';
 
   Future<void> initialize() async {
     if (!Platform.isAndroid) {
@@ -27,13 +26,10 @@ class AppBackgroundService {
     }
     final service = FlutterBackgroundService();
 
-    //se opreste orice instanta veche 
     final wasRunning = await service.isRunning();
-    if(wasRunning)
-    {
+    if (wasRunning) {
       debugPrint('⚠️ [BG] Exista deja un service vechi, il opresc...');
-      //await service.invoke('stopService');
-      
+
       await Future.delayed(const Duration(seconds: 1));
     }
 
@@ -67,65 +63,67 @@ class AppBackgroundService {
     bool lastHadInternet = true;
     try {
       final current = await connectivity.checkConnectivity();
-      lastHadInternet = current.any((result) => result != ConnectivityResult.none);
+      lastHadInternet = current.any(
+        (result) => result != ConnectivityResult.none,
+      );
     } catch (_) {}
 
     final sub = connectivity.onConnectivityChanged.listen((results) async {
       final hasNet = results.any((result) => result != ConnectivityResult.none);
       if (!hasNet && lastHadInternet) {
-        // tocmai am pierdut internetul -> trimite SMS cu ultima locație
         await _sendOfflineLocationSms();
       }
       lastHadInternet = hasNet;
     });
 
-    bool audioMonitoring = false;  //status audio in bg
+    bool audioMonitoring = false;
 
-    //UI da start la audio
     service.on('startAudio').listen((event) async {
-      debugPrint('🟢 [BG] startAudio primit – pornesc AudioMonitorService în background.');
+      debugPrint(
+        '🟢 [BG] startAudio primit – pornesc AudioMonitorService în background.',
+      );
       if (audioMonitoring) return;
 
       audioMonitoring = true;
 
-      await AudioMonitorService.instance.startMonitoring(onAlert: (result){
-        debugPrint('🚨 [BG] ALERTĂ AUDIO: $result');
-        
-        if (service is AndroidServiceInstance) {
-          service.setForegroundNotificationInfo(
-            title: 'Safety App - sunet detectat',
-            content: 'Tipete: ${result.tipete.toStringAsFixed(2)}, aglomerație: ${result.aglomeratie.toStringAsFixed(2)}, spargere: ${result.spargere.toStringAsFixed(2)}',
-          );
-        }
-        //aici pot declansa SMS, notificari, etc.
+      await AudioMonitorService.instance.startMonitoring(
+        onAlert: (result) {
+          debugPrint('🚨 [BG] ALERTĂ AUDIO: $result');
 
-        debugPrint('BACKGROUND ALERT AUDIO: $result');
-      });
+          if (service is AndroidServiceInstance) {
+            service.setForegroundNotificationInfo(
+              title: 'Safety App - sunet detectat',
+              content:
+                  'Tipete: ${result.tipete.toStringAsFixed(2)}, aglomerație: ${result.aglomeratie.toStringAsFixed(2)}, spargere: ${result.spargere.toStringAsFixed(2)}',
+            );
+          }
+
+          debugPrint('BACKGROUND ALERT AUDIO: $result');
+        },
+      );
     });
 
-    //UI da stop la audio
     service.on('stopAudio').listen((event) async {
       debugPrint('🛑 [BG] stopAudio primit – opresc AudioMonitorService.');
-      if(!audioMonitoring) return;
+      if (!audioMonitoring) return;
       audioMonitoring = false;
       await AudioMonitorService.instance.stopMonitoring();
 
-      if(service is AndroidServiceInstance) {
+      if (service is AndroidServiceInstance) {
         await service.setForegroundNotificationInfo(
-          title: 'Safety App', 
+          title: 'Safety App',
           content: 'Running • monitoring connectivity and location',
         );
       }
     });
 
-    // Keep alive timer ping
     Timer.periodic(const Duration(minutes: 15), (timer) async {
       if (service is AndroidServiceInstance) {
         await service.setForegroundNotificationInfo(
           title: 'Safety App',
           content: audioMonitoring
-            ? 'Running • connectivity, location & audio'
-            : 'Running • monitoring connectivity and location',
+              ? 'Running • connectivity, location & audio'
+              : 'Running • monitoring connectivity and location',
         );
       }
     });
@@ -134,27 +132,6 @@ class AppBackgroundService {
       sub.cancel();
       service.stopSelf();
     });
-
-    /*ShakeDetector.autoStart(
-      onPhoneShake: (ShakeEvent event) async {
-       // print("SHAKE DETECTAT!");
-        if( await Vibration.hasVibrator() ?? false) {
-          print("666");
-          if( await Vibration.hasCustomVibrationsSupport() ?? false) {
-            print("888");
-
-            Vibration.vibrate(duration: 1000);
-            await Future.delayed(Duration(milliseconds: 500));
-            Vibration.vibrate();
-          }
-        }
-      },
-      minimumShakeCount: 1,
-      shakeSlopTimeMS: 500,
-      shakeCountResetTime: 3000,
-      shakeThresholdGravity: 2.7,
-      useFilter: false,
-    );*/
   }
 
   static Future<void> _sendOfflineLocationSms() async {
@@ -169,13 +146,11 @@ class AppBackgroundService {
 
     if (!await SmsService.instance.hasSmsPermission()) {
       if (kDebugMode) {
-        // ignore: avoid_print
         print('SMS not sent: permission missing');
       }
       return;
     }
 
-    // throttle: nu trimite mai des de o dată la 10 minute
     final now = DateTime.now().millisecondsSinceEpoch;
     final lastAt = prefs.getInt(_keyLastOfflineSmsAt) ?? 0;
     if (now - lastAt < 10 * 60 * 1000) {
@@ -215,12 +190,9 @@ class AppBackgroundService {
     );
 
     if (!success && kDebugMode) {
-      // ignore: avoid_print
       print('Background SMS failed');
     }
 
     await prefs.setInt(_keyLastOfflineSmsAt, now);
   }
 }
-
-

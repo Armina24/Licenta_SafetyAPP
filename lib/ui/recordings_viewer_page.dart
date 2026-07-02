@@ -23,7 +23,7 @@ class _RecordingsViewerPageState extends State<RecordingsViewerPage> {
   Future<void> _loadRecordings() async {
     final recorder = BlackBoxRecorderService.instance;
     await recorder.initialize();
-    
+
     setState(() {
       _recordings = recorder.getRecordedFiles();
       _loading = false;
@@ -46,138 +46,130 @@ class _RecordingsViewerPageState extends State<RecordingsViewerPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _recordings.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.folder_open,
-                        size: 64,
-                        color: Colors.grey.shade400,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No recordings yet',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Trigger SOS to create recordings',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade500,
-                        ),
-                      ),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.folder_open,
+                    size: 64,
+                    color: Colors.grey.shade400,
                   ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _recordings.length,
-                  itemBuilder: (context, index) {
-                    final file = _recordings[index];
-                    final isImage = file.path.endsWith('.jpg');
-                    final isAudio = file.path.endsWith('.m4a');
-                    final fileName = file.path.split('/').last;
-                    final fileSize = file.lengthSync();
-                    final fileSizeKB = (fileSize / 1024).toStringAsFixed(1);
+                  const SizedBox(height: 16),
+                  Text(
+                    'No recordings yet',
+                    style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Trigger SOS to create recordings',
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+                  ),
+                ],
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: _recordings.length,
+              itemBuilder: (context, index) {
+                final file = _recordings[index];
+                final isImage = file.path.endsWith('.jpg');
+                final isAudio = file.path.endsWith('.m4a');
+                final fileName = file.path.split('/').last;
+                final fileSize = file.lengthSync();
+                final fileSizeKB = (fileSize / 1024).toStringAsFixed(1);
 
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: InkWell(
-                        onTap: () {
-                          if (isImage) {
-                            _showImageFullscreen(file);                          } else if (isAudio) {
-                            _playAudio(file);                          }
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Row(
-                            children: [
-                              // Preview
-                              Container(
-                                width: 80,
-                                height: 80,
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade200,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: isImage
-                                    ? ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: Image.file(
-                                          file,
-                                          fit: BoxFit.cover,
-                                        ),
-                                      )
-                                    : Icon(
-                                        isAudio
-                                            ? Icons.audiotrack
-                                            : Icons.insert_drive_file,
-                                        size: 40,
-                                        color: Colors.grey.shade400,
-                                      ),
-                              ),
-                              const SizedBox(width: 12),
-                              // Details
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      fileName,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '$fileSizeKB KB',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey.shade600,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      _formatTimestamp(fileName),
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: Colors.grey.shade500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              // Actions
-                              if (isImage)
-                                IconButton(
-                                  icon: const Icon(Icons.zoom_in),
-                                  onPressed: () => _showImageFullscreen(file),
-                                ),
-                              if (isAudio)
-                                IconButton(
-                                  icon: const Icon(Icons.play_circle_outline),
-                                  onPressed: () => _playAudio(file),
-                                ),
-                              IconButton(
-                                icon: const Icon(Icons.delete),
-                                color: Colors.red,
-                                onPressed: () => _deleteFile(file),
-                              ),
-                            ],
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: InkWell(
+                    onTap: () {
+                      if (isImage) {
+                        _showImageFullscreen(file);
+                      } else if (isAudio) {
+                        _playAudio(file);
+                      }
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: isImage
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.file(file, fit: BoxFit.cover),
+                                  )
+                                : Icon(
+                                    isAudio
+                                        ? Icons.audiotrack
+                                        : Icons.insert_drive_file,
+                                    size: 40,
+                                    color: Colors.grey.shade400,
+                                  ),
                           ),
-                        ),
+                          const SizedBox(width: 12),
+
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  fileName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '$fileSizeKB KB',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _formatTimestamp(fileName),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          if (isImage)
+                            IconButton(
+                              icon: const Icon(Icons.zoom_in),
+                              onPressed: () => _showImageFullscreen(file),
+                            ),
+                          if (isAudio)
+                            IconButton(
+                              icon: const Icon(Icons.play_circle_outline),
+                              onPressed: () => _playAudio(file),
+                            ),
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            color: Colors.red,
+                            onPressed: () => _deleteFile(file),
+                          ),
+                        ],
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                );
+              },
+            ),
       floatingActionButton: _recordings.isNotEmpty
           ? FloatingActionButton.extended(
               onPressed: _deleteAllFiles,
@@ -199,11 +191,7 @@ class _RecordingsViewerPageState extends State<RecordingsViewerPage> {
             backgroundColor: Colors.black,
           ),
           backgroundColor: Colors.black,
-          body: Center(
-            child: InteractiveViewer(
-              child: Image.file(imageFile),
-            ),
-          ),
+          body: Center(child: InteractiveViewer(child: Image.file(imageFile))),
         ),
       ),
     );
@@ -242,9 +230,9 @@ class _RecordingsViewerPageState extends State<RecordingsViewerPage> {
       await file.delete();
       _loadRecordings();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('File deleted')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('File deleted')));
       }
     }
   }
@@ -274,19 +262,21 @@ class _RecordingsViewerPageState extends State<RecordingsViewerPage> {
       await recorder.clearOldRecordings(olderThan: Duration.zero);
       _loadRecordings();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('All recordings deleted')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('All recordings deleted')));
       }
     }
   }
 
   String _formatTimestamp(String fileName) {
     try {
-      // Extract timestamp from filename (e.g., audio_1705516800000.m4a)
       final parts = fileName.split('_');
       if (parts.length >= 2) {
-        final timestampStr = parts[parts.length - 1].replaceAll(RegExp(r'\.[^.]+$'), '');
+        final timestampStr = parts[parts.length - 1].replaceAll(
+          RegExp(r'\.[^.]+$'),
+          '',
+        );
         final timestamp = int.parse(timestampStr);
         final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
         return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
@@ -296,7 +286,6 @@ class _RecordingsViewerPageState extends State<RecordingsViewerPage> {
   }
 }
 
-// Audio Player Page
 class AudioPlayerPage extends StatefulWidget {
   final File audioFile;
 
@@ -322,7 +311,7 @@ class _AudioPlayerPageState extends State<AudioPlayerPage> {
   Future<void> _initAudio() async {
     try {
       await _audioPlayer.setFilePath(widget.audioFile.path);
-      
+
       _audioPlayer.durationStream.listen((duration) {
         setState(() {
           _duration = duration ?? Duration.zero;
@@ -384,183 +373,180 @@ class _AudioPlayerPageState extends State<AudioPlayerPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Audio icon
               Container(
-              width: 200,
-              height: 200,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFF8C42).withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.audiotrack,
-                size: 100,
-                color: Color(0xFFFF8C42),
-              ),
-            ),
-
-            const SizedBox(height: 48),
-
-            // File name
-            Text(
-              widget.audioFile.path.split('/').last,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-
-            const SizedBox(height: 32),
-
-            // Progress slider
-            SliderTheme(
-              data: SliderThemeData(
-                activeTrackColor: const Color(0xFFFF8C42),
-                inactiveTrackColor: Colors.grey.shade300,
-                thumbColor: const Color(0xFFFF8C42),
-                overlayColor: const Color(0xFFFF8C42).withValues(alpha: 0.2),
-              ),
-              child: Slider(
-                value: _position.inSeconds.toDouble(),
-                max: _duration.inSeconds.toDouble().clamp(1.0, double.infinity),
-                onChanged: (value) {
-                  _audioPlayer.seek(Duration(seconds: value.toInt()));
-                },
-              ),
-            ),
-
-            // Time display
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    _formatDuration(_position),
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                  Text(
-                    _formatDuration(_duration),
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 48),
-
-            // Control buttons
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Stop button
-                IconButton(
-                  onPressed: _stop,
-                  icon: const Icon(Icons.stop_rounded),
-                  iconSize: 48,
-                  color: Colors.grey.shade600,
+                width: 200,
+                height: 200,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF8C42).withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
                 ),
-
-                const SizedBox(width: 32),
-
-                // Play/Pause button
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFFF8C42),
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    onPressed: _playPause,
-                    icon: Icon(
-                      _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                      color: Colors.white,
-                    ),
-                    iconSize: 48,
-                  ),
+                child: const Icon(
+                  Icons.audiotrack,
+                  size: 100,
+                  color: Color(0xFFFF8C42),
                 ),
+              ),
 
-                const SizedBox(width: 32),
+              const SizedBox(height: 48),
 
-                // Replay 10s button
-                IconButton(
-                  onPressed: () {
-                    final newPosition = _position - const Duration(seconds: 10);
-                    _audioPlayer.seek(
-                      newPosition.isNegative ? Duration.zero : newPosition,
-                    );
+              Text(
+                widget.audioFile.path.split('/').last,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 32),
+
+              SliderTheme(
+                data: SliderThemeData(
+                  activeTrackColor: const Color(0xFFFF8C42),
+                  inactiveTrackColor: Colors.grey.shade300,
+                  thumbColor: const Color(0xFFFF8C42),
+                  overlayColor: const Color(0xFFFF8C42).withValues(alpha: 0.2),
+                ),
+                child: Slider(
+                  value: _position.inSeconds.toDouble(),
+                  max: _duration.inSeconds.toDouble().clamp(
+                    1.0,
+                    double.infinity,
+                  ),
+                  onChanged: (value) {
+                    _audioPlayer.seek(Duration(seconds: value.toInt()));
                   },
-                  icon: const Icon(Icons.replay_10_rounded),
-                  iconSize: 48,
-                  color: Colors.grey.shade600,
                 ),
-              ],
-            ),
-
-            const SizedBox(height: 48),
-
-            // File info
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(12),
               ),
-              child: Column(
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _formatDuration(_position),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    Text(
+                      _formatDuration(_duration),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 48),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'File Size:',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 14,
-                        ),
-                      ),
-                      Text(
-                        '${(widget.audioFile.lengthSync() / 1024).toStringAsFixed(1)} KB',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
+                  IconButton(
+                    onPressed: _stop,
+                    icon: const Icon(Icons.stop_rounded),
+                    iconSize: 48,
+                    color: Colors.grey.shade600,
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Duration:',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 14,
-                        ),
+
+                  const SizedBox(width: 32),
+
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFF8C42),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      onPressed: _playPause,
+                      icon: Icon(
+                        _isPlaying
+                            ? Icons.pause_rounded
+                            : Icons.play_arrow_rounded,
+                        color: Colors.white,
                       ),
-                      Text(
-                        _formatDuration(_duration),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
+                      iconSize: 48,
+                    ),
+                  ),
+
+                  const SizedBox(width: 32),
+
+                  IconButton(
+                    onPressed: () {
+                      final newPosition =
+                          _position - const Duration(seconds: 10);
+                      _audioPlayer.seek(
+                        newPosition.isNegative ? Duration.zero : newPosition,
+                      );
+                    },
+                    icon: const Icon(Icons.replay_10_rounded),
+                    iconSize: 48,
+                    color: Colors.grey.shade600,
                   ),
                 ],
               ),
-            ),
-          ],
+
+              const SizedBox(height: 48),
+
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'File Size:',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          '${(widget.audioFile.lengthSync() / 1024).toStringAsFixed(1)} KB',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Duration:',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          _formatDuration(_duration),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }

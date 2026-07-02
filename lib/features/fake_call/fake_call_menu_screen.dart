@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 import 'fake_call_scenario.dart';
 import 'smart_fake_call_screen.dart';
 
-/// Entry screen for selecting fake call scenario
 class FakeCallMenuScreen extends StatelessWidget {
   const FakeCallMenuScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryOrange = isDark ? const Color(0xFFFF8A50) : const Color(0xFFFF7A00);
-    final secondaryOrange = isDark ? const Color(0xFFFF6F3D) : const Color(0xFFFF5A1F);
+    final primaryOrange = isDark
+        ? const Color(0xFFFF8A50)
+        : const Color(0xFFFF7A00);
+    final secondaryOrange = isDark
+        ? const Color(0xFFFF6F3D)
+        : const Color(0xFFFF5A1F);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Smart Fake Call'),
@@ -28,10 +31,7 @@ class FakeCallMenuScreen extends StatelessWidget {
                     primaryOrange.withValues(alpha: 0.85),
                     const Color(0xFF1A1A1A),
                   ]
-                : [
-                    primaryOrange.withValues(alpha: 0.15),
-                    Colors.white,
-                  ],
+                : [primaryOrange.withValues(alpha: 0.15), Colors.white],
           ),
         ),
         child: SafeArea(
@@ -40,31 +40,25 @@ class FakeCallMenuScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Header
-                Icon(
-                  Icons.phone_forwarded,
-                  size: 64,
-                  color: primaryOrange,
-                ),
+                Icon(Icons.phone_forwarded, size: 64, color: primaryOrange),
                 const SizedBox(height: 16),
                 Text(
                   'Choose Your Scenario',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : const Color(0xFF3B1B0D),
-                      ),
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : const Color(0xFF3B1B0D),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Select the type of fake call you need',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: isDark ? Colors.white70 : Colors.grey[700]!,
-                      ),
+                    color: isDark ? Colors.white70 : Colors.grey[700]!,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 48),
 
-                // Social Button
                 _ScenarioCard(
                   title: 'Social',
                   description: 'Escape awkward meetings',
@@ -83,7 +77,6 @@ class FakeCallMenuScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
 
-                // Emergency Button
                 _ScenarioCard(
                   title: 'Emergency',
                   description: 'Get help in unsafe areas',
@@ -103,7 +96,6 @@ class FakeCallMenuScreen extends StatelessWidget {
 
                 const SizedBox(height: 48),
 
-                // Info text
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -119,11 +111,7 @@ class FakeCallMenuScreen extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      Icon(
-                        Icons.info_outline,
-                        color: primaryOrange,
-                        size: 20,
-                      ),
+                      Icon(Icons.info_outline, color: primaryOrange, size: 20),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
@@ -146,7 +134,6 @@ class FakeCallMenuScreen extends StatelessWidget {
   }
 }
 
-/// Scenario selection card widget
 class _ScenarioCard extends StatelessWidget {
   final String title;
   final String description;
@@ -166,9 +153,7 @@ class _ScenarioCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
@@ -187,7 +172,6 @@ class _ScenarioCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              // Icon container
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -201,15 +185,10 @@ class _ScenarioCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: Icon(
-                  icon,
-                  size: 32,
-                  color: Colors.white,
-                ),
+                child: Icon(icon, size: 32, color: Colors.white),
               ),
               const SizedBox(width: 20),
 
-              // Text content
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,27 +196,22 @@ class _ScenarioCard extends StatelessWidget {
                     Text(
                       title,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: color,
-                          ),
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       description,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey[600]!,
-                          ),
+                        color: Colors.grey[600]!,
+                      ),
                     ),
                   ],
                 ),
               ),
 
-              // Arrow icon
-              Icon(
-                Icons.arrow_forward_ios,
-                color: color,
-                size: 20,
-              ),
+              Icon(Icons.arrow_forward_ios, color: color, size: 20),
             ],
           ),
         ),

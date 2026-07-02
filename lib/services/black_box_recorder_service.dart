@@ -6,16 +6,13 @@ import 'package:path_provider/path_provider.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:http/http.dart' as http;
 
-/// Black Box Recorder Service
-/// Captures camera snapshots when SOS is triggered
-/// Stores locally and attempts cloud upload if internet available
 class BlackBoxRecorderService {
   BlackBoxRecorderService._internal();
   static final BlackBoxRecorderService instance =
       BlackBoxRecorderService._internal();
 
   static const String _cloudUploadUrl =
-      'https://your-backend.com/api/blackbox/upload'; // Placeholder URL
+      'https://your-backend.com/api/blackbox/upload';
   static const String _recordingsDirName = '.blackbox_recordings';
 
   late Directory _recordingsDirectory;
@@ -32,29 +29,25 @@ class BlackBoxRecorderService {
 
   ValueNotifier<BlackBoxRecordingState> recordingState =
       ValueNotifier<BlackBoxRecordingState>(
-    BlackBoxRecordingState(
-      isRecording: false,
-      frontSnapshots: 0,
-      rearSnapshots: 0,
-      uploadInProgress: false,
-    ),
-  );
+        BlackBoxRecordingState(
+          isRecording: false,
+          frontSnapshots: 0,
+          rearSnapshots: 0,
+          uploadInProgress: false,
+        ),
+      );
 
-  /// Initialize the recorder service
   Future<void> initialize() async {
     if (_isInitialized) return;
 
     try {
-      // Get recordings directory
       final appDir = await getApplicationDocumentsDirectory();
       _recordingsDirectory = Directory('${appDir.path}/$_recordingsDirName');
 
-      // Create directory if it doesn't exist
       if (!_recordingsDirectory.existsSync()) {
         await _recordingsDirectory.create(recursive: true);
       }
 
-      // Initialize cameras
       await _initializeCameras();
 
       _isInitialized = true;
@@ -64,7 +57,6 @@ class BlackBoxRecorderService {
     }
   }
 
-  /// Initialize available cameras and pick front/back by lens direction
   Future<void> _initializeCameras() async {
     try {
       final cameras = await availableCameras();
@@ -85,14 +77,14 @@ class BlackBoxRecorderService {
         _rearCamera = cameras.length > 1 ? cameras.last : null;
       }
 
-      debugPrint('[BlackBoxRecorder] Cameras found: ${cameras.length}. Front=${_frontCamera?.name}, Rear=${_rearCamera?.name}');
+      debugPrint(
+        '[BlackBoxRecorder] Cameras found: ${cameras.length}. Front=${_frontCamera?.name}, Rear=${_rearCamera?.name}',
+      );
     } catch (e) {
       debugPrint('[BlackBoxRecorder] Camera initialization error: $e');
     }
   }
 
-  /// Start capturing snapshots (non-blocking)
-  /// This runs in a background task to not block UI
   Future<void> startRecording({
     Duration recordingDuration = const Duration(minutes: 5),
     Duration snapshotInterval = const Duration(seconds: 5),
@@ -111,40 +103,33 @@ class BlackBoxRecorderService {
     _capturedSnapshots = [];
     _updateRecordingState(isRecording: true);
 
-    // Run snapshot capture on background thread
     unawaited(
-      _captureSnapshots(recordingDuration, snapshotInterval).then((_) async {
-        await _cleanupRecording();
-        _isRecording = false;
-        _updateRecordingState(isRecording: false);
+      _captureSnapshots(recordingDuration, snapshotInterval)
+          .then((_) async {
+            await _cleanupRecording();
+            _isRecording = false;
+            _updateRecordingState(isRecording: false);
 
-        // Attempt cloud upload if internet available
-        unawaited(_attemptCloudUpload());
-      }).catchError((e) {
-        debugPrint('[BlackBoxRecorder] Recording error: $e');
-        _isRecording = false;
-        _updateRecordingState(isRecording: false);
-      }),
+            unawaited(_attemptCloudUpload());
+          })
+          .catchError((e) {
+            debugPrint('[BlackBoxRecorder] Recording error: $e');
+            _isRecording = false;
+            _updateRecordingState(isRecording: false);
+          }),
     );
   }
 
-  /// Stop recording immediately (useful for app shutdown)
   Future<void> stopRecording() async {
     if (!_isRecording) return;
-    
+
     debugPrint('[BlackBoxRecorder] Stopping recording...');
     await _cleanupRecording();
     _isRecording = false;
     _updateRecordingState(isRecording: false);
   }
 
-  // Audio recording removed per requirements
-
-  /// Capture snapshots from both cameras at intervals
-  Future<void> _captureSnapshots(
-    Duration duration,
-    Duration interval,
-  ) async {
+  Future<void> _captureSnapshots(Duration duration, Duration interval) async {
     final stopTime = DateTime.now().add(duration);
     int frontCount = 0;
     int rearCount = 0;
@@ -157,7 +142,6 @@ class BlackBoxRecorderService {
       return;
     }
 
-    // Start with back camera if present, otherwise front
     bool captureFrontNext = rearAvailable ? false : true;
 
     while (DateTime.now().isBefore(stopTime) && _isRecording) {
@@ -178,39 +162,44 @@ class BlackBoxRecorderService {
             _capturedSnapshots.add(snapshot);
             if (useFront) {
               frontCount++;
-              debugPrint('[BlackBoxRecorder] ✅ Front camera snapshot #$frontCount captured');
+              debugPrint(
+                '[BlackBoxRecorder] ✅ Front camera snapshot #$frontCount captured',
+              );
             } else {
               rearCount++;
-              debugPrint('[BlackBoxRecorder] ✅ Rear camera snapshot #$rearCount captured');
+              debugPrint(
+                '[BlackBoxRecorder] ✅ Rear camera snapshot #$rearCount captured',
+              );
             }
           } else {
-            debugPrint('[BlackBoxRecorder] ⚠️ ${useFront ? 'Front' : 'Rear'} camera returned null (camera busy or unavailable)');
+            debugPrint(
+              '[BlackBoxRecorder] ⚠️ ${useFront ? 'Front' : 'Rear'} camera returned null (camera busy or unavailable)',
+            );
           }
         }
       } catch (e) {
-        debugPrint('[BlackBoxRecorder] ❌ ${useFront ? 'Front' : 'Rear'} camera error: $e');
+        debugPrint(
+          '[BlackBoxRecorder] ❌ ${useFront ? 'Front' : 'Rear'} camera error: $e',
+        );
       }
 
-      // Alternate only when both cameras are available; otherwise stay on the single available camera
       if (frontAvailable && rearAvailable) {
         captureFrontNext = !captureFrontNext;
       }
 
-      // Update UI state
       _updateRecordingState(
         frontSnapshots: frontCount,
         rearSnapshots: rearCount,
       );
 
-      // Wait for next interval
       await Future.delayed(interval);
     }
 
     debugPrint(
-        '[BlackBoxRecorder] Snapshot capture completed. Front: $frontCount, Rear: $rearCount');
+      '[BlackBoxRecorder] Snapshot capture completed. Front: $frontCount, Rear: $rearCount',
+    );
   }
 
-  /// Capture a single snapshot from a camera
   Future<File?> _captureFromCamera({
     required CameraDescription camera,
     required String label,
@@ -222,7 +211,6 @@ class BlackBoxRecorderService {
         '${_recordingsDirectory.path}/snapshot_${label}_$timestamp.jpg',
       );
 
-      // Initialize controller if needed
       if (isFront && _frontCameraController == null) {
         _frontCameraController = CameraController(
           camera,
@@ -239,15 +227,17 @@ class BlackBoxRecorderService {
         await _rearCameraController!.initialize();
       }
 
-      // Take picture (silent, no UI)
-        final controller = isFront ? _frontCameraController : _rearCameraController;
+      final controller = isFront
+          ? _frontCameraController
+          : _rearCameraController;
 
       if (controller != null && controller.value.isInitialized) {
         final xFile = await controller.takePicture();
         await xFile.saveTo(outputFile.path);
 
         debugPrint(
-            '[BlackBoxRecorder] Captured $label snapshot: ${outputFile.path}');
+          '[BlackBoxRecorder] Captured $label snapshot: ${outputFile.path}',
+        );
         return outputFile;
       }
 
@@ -258,13 +248,10 @@ class BlackBoxRecorderService {
     }
   }
 
-  /// Cleanup resources and prepare for next recording
   Future<void> _cleanupRecording() async {
     try {
-      // Set recording flag to false first to stop listener
       _isRecording = false;
 
-      // Dispose camera controllers
       await _frontCameraController?.dispose();
       await _rearCameraController?.dispose();
 
@@ -277,18 +264,18 @@ class BlackBoxRecorderService {
     }
   }
 
-  /// Attempt to upload recorded files to cloud
   Future<void> _attemptCloudUpload() async {
     try {
-      // Check internet connectivity
       final connectivity = Connectivity();
-        final results = await connectivity.checkConnectivity();
-        // connectivity_plus may return multiple transports; treat "none" or empty as offline
-        final noInternet = results.isEmpty || results.contains(ConnectivityResult.none);
+      final results = await connectivity.checkConnectivity();
+
+      final noInternet =
+          results.isEmpty || results.contains(ConnectivityResult.none);
 
       if (noInternet) {
         debugPrint(
-            '[BlackBoxRecorder] No internet connection. Skipping upload.');
+          '[BlackBoxRecorder] No internet connection. Skipping upload.',
+        );
         return;
       }
 
@@ -306,32 +293,29 @@ class BlackBoxRecorderService {
       }
 
       debugPrint(
-          '[BlackBoxRecorder] Starting cloud upload of ${filesToUpload.length} files');
+        '[BlackBoxRecorder] Starting cloud upload of ${filesToUpload.length} files',
+      );
 
-      // Upload files with timeout
       try {
-        final request = http.MultipartRequest('POST', Uri.parse(_cloudUploadUrl))
-          ..fields['timestamp'] = timestamp
-          ..fields['deviceId'] = _getDeviceId();
+        final request =
+            http.MultipartRequest('POST', Uri.parse(_cloudUploadUrl))
+              ..fields['timestamp'] = timestamp
+              ..fields['deviceId'] = _getDeviceId();
 
         for (final file in filesToUpload) {
           request.files.add(
-            await http.MultipartFile.fromPath(
-              'files',
-              file.path,
-            ),
+            await http.MultipartFile.fromPath('files', file.path),
           );
         }
 
-        final streamedResponse = await request
-            .send()
-            .timeout(const Duration(seconds: 30));
+        final streamedResponse = await request.send().timeout(
+          const Duration(seconds: 30),
+        );
         final response = await http.Response.fromStream(streamedResponse);
 
         if (response.statusCode == 200 || response.statusCode == 201) {
           debugPrint('[BlackBoxRecorder] Cloud upload successful');
 
-          // Optionally delete local files after successful upload
           for (final file in filesToUpload) {
             try {
               await file.delete();
@@ -340,7 +324,8 @@ class BlackBoxRecorderService {
           _capturedSnapshots.clear();
         } else {
           debugPrint(
-              '[BlackBoxRecorder] Cloud upload failed: ${response.statusCode}');
+            '[BlackBoxRecorder] Cloud upload failed: ${response.statusCode}',
+          );
         }
       } on TimeoutException {
         debugPrint('[BlackBoxRecorder] Cloud upload timeout');
@@ -353,13 +338,10 @@ class BlackBoxRecorderService {
     }
   }
 
-  /// Get device identifier (placeholder)
   String _getDeviceId() {
-    // In production, use device_info_plus package
     return 'device_${DateTime.now().millisecondsSinceEpoch}';
   }
 
-  /// Update recording state
   void _updateRecordingState({
     bool? isRecording,
     int? frontSnapshots,
@@ -375,21 +357,17 @@ class BlackBoxRecorderService {
     );
   }
 
-  /// Get recordings directory path
   String get recordingsDirectoryPath => _recordingsDirectory.path;
 
-  /// Get list of recorded files
   List<File> getRecordedFiles() {
     if (!_recordingsDirectory.existsSync()) return [];
-    final files = _recordingsDirectory
-        .listSync()
-        .whereType<File>()
-        .toList();
+    final files = _recordingsDirectory.listSync().whereType<File>().toList();
     return files;
   }
 
-  /// Clear old recordings (older than specified duration)
-  Future<void> clearOldRecordings({Duration olderThan = const Duration(days: 7)}) async {
+  Future<void> clearOldRecordings({
+    Duration olderThan = const Duration(days: 7),
+  }) async {
     try {
       final cutoffTime = DateTime.now().subtract(olderThan);
       final files = getRecordedFiles();
@@ -406,7 +384,6 @@ class BlackBoxRecorderService {
     }
   }
 
-  /// Dispose service
   Future<void> dispose() async {
     await _frontCameraController?.dispose();
     await _rearCameraController?.dispose();
@@ -414,7 +391,6 @@ class BlackBoxRecorderService {
   }
 }
 
-/// Recording state model
 class BlackBoxRecordingState {
   final bool isRecording;
   final int frontSnapshots;

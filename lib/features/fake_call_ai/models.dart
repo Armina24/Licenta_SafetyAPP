@@ -9,18 +9,12 @@ class NavStep {
   final String instruction;
   final LatLng endLocation;
 
-  const NavStep({
-    required this.instruction,
-    required this.endLocation,
-  });
+  const NavStep({required this.instruction, required this.endLocation});
 }
 
 class NavCue {
   final String text;
   final bool priority;
 
-  const NavCue({
-    required this.text,
-    this.priority = false,
-  });
+  const NavCue({required this.text, this.priority = false});
 }

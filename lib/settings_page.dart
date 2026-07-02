@@ -7,6 +7,7 @@ import 'ui/scaffold_wrapper.dart';
 import 'ui/privacy_policy_screen.dart';
 import 'ui/terms_of_service_screen.dart';
 import 'config/app_theme.dart';
+import 'services/user_profile_storage.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -35,17 +36,29 @@ class _SettingsPageState extends State<SettingsPage> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _userEmail = prefs.getString('userEmail');
-      _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
-      _isDarkMode = prefs.getBool('isDarkMode') ?? false;
+
+      _notificationsEnabled =
+          UserProfileStorage.getBool(
+            prefs,
+            'notifications_enabled',
+            legacyKeys: const ['notifications_enabled'],
+          ) ??
+          true;
+
+      _isDarkMode =
+          UserProfileStorage.getBool(
+            prefs,
+            'isDarkMode',
+            legacyKeys: const ['isDarkMode'],
+          ) ??
+          false;
     });
 
-    // Check location permission
     final locationStatus = await Permission.location.status;
     setState(() {
       _locationEnabled = locationStatus.isGranted;
     });
 
-    // Check SMS permission
     final smsStatus = await Permission.sms.status;
     setState(() {
       _smsEnabled = smsStatus.isGranted;
@@ -54,7 +67,6 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _toggleLocation() async {
     if (_locationEnabled) {
-      // Request to disable - just update UI
       setState(() => _locationEnabled = false);
     } else {
       final status = await Permission.location.request();
@@ -101,9 +113,9 @@ class _SettingsPageState extends State<SettingsPage> {
       if (!mounted) return;
       setState(() => _smsEnabled = status.isGranted);
       if (status.isGranted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('SMS permission granted')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('SMS permission granted')));
       } else if (status.isPermanentlyDenied) {
         if (mounted) {
           showDialog(
@@ -136,18 +148,25 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _toggleNotifications() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() => _notificationsEnabled = !_notificationsEnabled);
-    await prefs.setBool('notifications_enabled', _notificationsEnabled);
+
+    await UserProfileStorage.setBool(
+      prefs,
+      'notifications_enabled',
+      _notificationsEnabled,
+    );
   }
 
   Future<void> _toggleDarkMode() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() => _isDarkMode = !_isDarkMode);
+
+    await UserProfileStorage.setBool(prefs, 'isDarkMode', _isDarkMode);
+
     await prefs.setBool('isDarkMode', _isDarkMode);
-    // Update app theme using the ValueNotifier
     MyApp.themeNotifier.value = _isDarkMode ? ThemeMode.dark : ThemeMode.light;
   }
 
-  Future<void> _logout() async{
+  Future<void> _logout() async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -168,6 +187,8 @@ class _SettingsPageState extends State<SettingsPage> {
 
     if (confirm == true) {
       await AuthService.instance.logout();
+
+      MyApp.themeNotifier.value = ThemeMode.light;
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, '/start', (route) => false);
     }
@@ -177,7 +198,9 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final appBarBgColor = isDarkMode ? Colors.transparent : _bgColor;
-    final titleColor = isDarkMode ? AppTheme.textPrimary : const Color(0xFF1F1F1F);
+    final titleColor = isDarkMode
+        ? AppTheme.textPrimary
+        : const Color(0xFF1F1F1F);
 
     final scaffoldContent = Scaffold(
       backgroundColor: isDarkMode ? Colors.transparent : _bgColor,
@@ -201,7 +224,6 @@ class _SettingsPageState extends State<SettingsPage> {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           children: [
-            // Account Section
             _SectionHeader(title: 'Account'),
             _SettingsTile(
               leading: const Icon(Icons.email_outlined),
@@ -211,7 +233,6 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 8),
 
-            // Permissions Section
             _SectionHeader(title: 'Permissions'),
             _SettingsTile(
               leading: const Icon(Icons.location_on_outlined),
@@ -228,9 +249,7 @@ class _SettingsPageState extends State<SettingsPage> {
             _SettingsTile(
               leading: const Icon(Icons.sms_outlined),
               title: 'SMS Access',
-              subtitle: _smsEnabled
-                  ? 'Enabled'
-                  : 'Required to send alerts',
+              subtitle: _smsEnabled ? 'Enabled' : 'Required to send alerts',
               trailing: Switch(
                 value: _smsEnabled,
                 onChanged: (_) => _toggleSms(),
@@ -239,7 +258,6 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 8),
 
-            // Appearance Section
             _SectionHeader(title: 'Appearance'),
             _SettingsTile(
               leading: const Icon(Icons.dark_mode_outlined),
@@ -255,14 +273,11 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 8),
 
-            // Notifications Section
             _SectionHeader(title: 'Notifications'),
             _SettingsTile(
               leading: const Icon(Icons.notifications_outlined),
               title: 'Push Notifications',
-              subtitle: _notificationsEnabled
-                  ? 'Enabled'
-                  : 'Disabled',
+              subtitle: _notificationsEnabled ? 'Enabled' : 'Disabled',
               trailing: Switch(
                 value: _notificationsEnabled,
                 onChanged: (_) => _toggleNotifications(),
@@ -271,7 +286,6 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 8),
 
-            // About Section
             _SectionHeader(title: 'About'),
             _SettingsTile(
               leading: const Icon(Icons.info_outline),
@@ -309,7 +323,6 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 24),
 
-            // Logout
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: ElevatedButton(
@@ -351,21 +364,28 @@ class _SettingsPageState extends State<SettingsPage> {
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             children: [
-              // Account Section
               _SectionHeader(title: 'Account'),
               _SettingsTile(
-                leading: Icon(Icons.email_outlined, color: AppTheme.textSecondary),
+                leading: Icon(
+                  Icons.email_outlined,
+                  color: AppTheme.textSecondary,
+                ),
                 title: 'Email',
                 subtitle: _userEmail ?? 'Not available',
                 trailing: null,
               ),
               const SizedBox(height: 8),
-              // Permissions Section
+
               _SectionHeader(title: 'Permissions'),
               _SettingsTile(
-                leading: Icon(Icons.location_on_outlined, color: AppTheme.accentTeal),
+                leading: Icon(
+                  Icons.location_on_outlined,
+                  color: AppTheme.accentTeal,
+                ),
                 title: 'Location Access',
-                subtitle: _locationEnabled ? 'Enabled' : 'Required for SOS alerts',
+                subtitle: _locationEnabled
+                    ? 'Enabled'
+                    : 'Required for SOS alerts',
                 trailing: Switch(
                   value: _locationEnabled,
                   onChanged: (_) => _toggleLocation(),
@@ -383,12 +403,17 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ),
               const SizedBox(height: 8),
-              // Appearance Section
+
               _SectionHeader(title: 'Appearance'),
               _SettingsTile(
-                leading: Icon(Icons.dark_mode_outlined, color: AppTheme.accentPurple),
+                leading: Icon(
+                  Icons.dark_mode_outlined,
+                  color: AppTheme.accentPurple,
+                ),
                 title: 'Dark Mode',
-                subtitle: _isDarkMode ? 'Dark theme enabled' : 'Light theme enabled',
+                subtitle: _isDarkMode
+                    ? 'Dark theme enabled'
+                    : 'Light theme enabled',
                 trailing: Switch(
                   value: _isDarkMode,
                   onChanged: (_) => _toggleDarkMode(),
@@ -396,10 +421,13 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ),
               const SizedBox(height: 8),
-              // Notifications Section
+
               _SectionHeader(title: 'Notifications'),
               _SettingsTile(
-                leading: Icon(Icons.notifications_outlined, color: AppTheme.accentGreen),
+                leading: Icon(
+                  Icons.notifications_outlined,
+                  color: AppTheme.accentGreen,
+                ),
                 title: 'Push Notifications',
                 subtitle: _notificationsEnabled ? 'Enabled' : 'Disabled',
                 trailing: Switch(
@@ -409,19 +437,28 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ),
               const SizedBox(height: 8),
-              // About Section
+
               _SectionHeader(title: 'About'),
               _SettingsTile(
-                leading: Icon(Icons.info_outline, color: AppTheme.textSecondary),
+                leading: Icon(
+                  Icons.info_outline,
+                  color: AppTheme.textSecondary,
+                ),
                 title: 'App Version',
                 subtitle: '1.0.0',
                 trailing: null,
               ),
               _SettingsTile(
-                leading: Icon(Icons.privacy_tip_outlined, color: AppTheme.textSecondary),
+                leading: Icon(
+                  Icons.privacy_tip_outlined,
+                  color: AppTheme.textSecondary,
+                ),
                 title: 'Privacy Policy',
                 subtitle: 'View our privacy policy',
-                trailing: const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+                trailing: const Icon(
+                  Icons.chevron_right,
+                  color: AppTheme.textSecondary,
+                ),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -432,10 +469,16 @@ class _SettingsPageState extends State<SettingsPage> {
                 },
               ),
               _SettingsTile(
-                leading: Icon(Icons.description_outlined, color: AppTheme.textSecondary),
+                leading: Icon(
+                  Icons.description_outlined,
+                  color: AppTheme.textSecondary,
+                ),
                 title: 'Terms of Service',
                 subtitle: 'View terms and conditions',
-                trailing: const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+                trailing: const Icon(
+                  Icons.chevron_right,
+                  color: AppTheme.textSecondary,
+                ),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -446,9 +489,12 @@ class _SettingsPageState extends State<SettingsPage> {
                 },
               ),
               const SizedBox(height: 24),
-              // Logout
+
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: ElevatedButton(
                   onPressed: _logout,
                   style: ElevatedButton.styleFrom(
@@ -519,9 +565,7 @@ class _SettingsTile extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       elevation: isDarkMode ? 8 : 0,
-      color: isDarkMode
-          ? AppTheme.glassDarkMedium
-          : Colors.white,
+      color: isDarkMode ? AppTheme.glassDarkMedium : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
@@ -545,7 +589,9 @@ class _SettingsTile extends StatelessWidget {
           subtitle,
           style: TextStyle(
             fontSize: 13,
-            color: isDarkMode ? AppTheme.textSecondary : const Color(0xFF777777),
+            color: isDarkMode
+                ? AppTheme.textSecondary
+                : const Color(0xFF777777),
           ),
         ),
         trailing: trailing,
@@ -554,4 +600,3 @@ class _SettingsTile extends StatelessWidget {
     );
   }
 }
-

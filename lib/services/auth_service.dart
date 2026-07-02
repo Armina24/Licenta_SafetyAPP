@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api_client.dart';
+import 'user_profile_storage.dart';
+import 'emergency_contacts_service.dart';
 
 class AuthException implements Exception {
   AuthException(this.message, {this.statusCode});
@@ -40,10 +42,7 @@ class AuthService {
     throw _toAuthException(response);
   }
 
-  Future<void> login({
-    required String email,
-    required String password,
-  }) async {
+  Future<void> login({required String email, required String password}) async {
     final response = await _client.post(
       _api.buildUri('/auth/login'),
       headers: {'Content-Type': 'application/json'},
@@ -64,6 +63,49 @@ class AuthService {
       await prefs.setString('refreshToken', refreshToken);
       await prefs.setString('userEmail', email.trim());
       await prefs.setBool('isLoggedIn', true);
+
+      try {
+        final serverContacts = await EmergencyContactsService.instance
+            .fetchContacts();
+        final List<String> phones = [];
+        final List<String> contactsList = [];
+        for (final contact in serverContacts) {
+          final name = contact['name'] ?? 'Contact';
+          final phone = contact['phoneNumber'] ?? '';
+          if (phone.isNotEmpty) {
+            phones.add(phone);
+            contactsList.add('$name::$phone');
+          }
+        }
+        if (contactsList.isNotEmpty) {
+          await UserProfileStorage.setString(
+            prefs,
+            'emergency_contacts_list',
+            contactsList.join('|'),
+          );
+          await prefs.setString('emergency_contacts', phones.join(','));
+        }
+      } catch (e) {
+        final contactsJson = UserProfileStorage.getString(
+          prefs,
+          'emergency_contacts_list',
+        );
+        if (contactsJson != null && contactsJson.isNotEmpty) {
+          final List<dynamic> parsed = contactsJson
+              .split('|')
+              .map((item) {
+                final parts = item.split('::');
+                if (parts.length == 2) {
+                  return parts[1];
+                }
+                return null;
+              })
+              .where((item) => item != null)
+              .toList();
+          await prefs.setString('emergency_contacts', parsed.join(','));
+        }
+      }
+
       return;
     }
 
@@ -81,15 +123,24 @@ class AuthService {
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({'refreshToken': refreshToken}),
         );
-      } catch (_) {
-        // Ignorăm erorile de rețea la logout.
-      }
+      } catch (_) {}
     }
 
     await prefs.remove('accessToken');
     await prefs.remove('refreshToken');
     await prefs.remove('userEmail');
     await prefs.setBool('isLoggedIn', false);
+
+    await prefs.remove('emergency_contacts');
+    await prefs.remove('emergency_contacts_list');
+    await prefs.remove('safety_timer_active');
+    await prefs.remove('safety_timer_end_time');
+    await prefs.remove('safety_timer_check_in_notified');
+    await prefs.remove('safety_timer_total_minutes');
+    await prefs.remove('safety_shield_active');
+    await prefs.remove('notifications_enabled');
+    await prefs.remove('isDarkMode');
+    await prefs.remove('last_offline_sms_at');
   }
 
   Future<Map<String, dynamic>?> fetchCurrentUser() async {
@@ -163,14 +214,59 @@ class AuthService {
           return AuthException(message, statusCode: response.statusCode);
         }
       }
-    } catch (_) {
-      // Ignorăm erorile de parsare și folosim mesaj generic.
-    }
+    } catch (_) {}
     return AuthException(
       'A apărut o eroare (${response.statusCode}). Încearcă din nou.',
       statusCode: response.statusCode,
     );
   }
+
+  Future<void> forgotPassword({
+    required String email,
+    required String channel,
+  }) async {
+    final response = await _client.post(
+      _api.buildUri('/auth/forgot-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email.trim(), 'channel': channel}),
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) return;
+    throw _toAuthException(response);
+  }
+
+  Future<String> verifyResetCode({
+    required String email,
+    required String code,
+  }) async {
+    final response = await _client.post(
+      _api.buildUri('/auth/verify-reset-code'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email.trim(), 'code': code.trim()}),
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final payload = _decodeJson(response.body) as Map<String, dynamic>;
+      final token = payload['resetToken'] as String?;
+      if (token == null || token.isEmpty) {
+        throw AuthException('Răspuns invalid de la server.');
+      }
+      return token;
+    }
+    throw _toAuthException(response);
+  }
+
+  Future<void> resetPassword({
+    required String resetToken,
+    required String newPassword,
+  }) async {
+    final response = await _client.post(
+      _api.buildUri('/auth/reset-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'resetToken': resetToken, 'newPassword': newPassword}),
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) return;
+    throw _toAuthException(response);
+  }
 }
-
-

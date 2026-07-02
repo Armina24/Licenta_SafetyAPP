@@ -1,4 +1,3 @@
-// lib/map_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -33,7 +32,6 @@ class _MapPageState extends State<MapPage> {
         _currentLatLng = LatLng(pos.latitude, pos.longitude);
       });
 
-      // Ascultă și stream-ul ca să se actualizeze markerul când te miști
       LocationService.instance.getPositionStream().listen((p) {
         setState(() {
           _currentLatLng = LatLng(p.latitude, p.longitude);
@@ -46,13 +44,17 @@ class _MapPageState extends State<MapPage> {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
-    final textColor = isDarkMode ? AppTheme.textPrimary : const Color(0xFF1F1F1F);
+    final textColor = isDarkMode
+        ? AppTheme.textPrimary
+        : const Color(0xFF1F1F1F);
 
     if (_currentLatLng == null) {
       final loadingScaffold = Scaffold(
         appBar: AppBar(
           title: const Text('Map'),
-          backgroundColor: isDarkMode ? Colors.transparent : colorScheme.primary,
+          backgroundColor: isDarkMode
+              ? Colors.transparent
+              : colorScheme.primary,
           foregroundColor: isDarkMode ? AppTheme.textPrimary : Colors.white,
         ),
         body: const Center(child: CircularProgressIndicator()),

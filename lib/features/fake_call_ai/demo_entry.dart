@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'fake_call_scenario.dart';
 import 'openai_fake_call_screen.dart';
 
-const String kOpenAIApiKey = 'PASTE_OPENAI_KEY_HERE';
-const String kGoogleMapsApiKey = 'PASTE_GOOGLE_MAPS_KEY_HERE';
+const String kOpenAIApiKey = String.fromEnvironment('OPENAI_API_KEY');
+const String kGoogleMapsApiKey = String.fromEnvironment('GOOGLE_MAPS_API_KEY');
 
 class FakeCallAIDemoEntry extends StatelessWidget {
   const FakeCallAIDemoEntry({super.key});

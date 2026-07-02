@@ -9,7 +9,9 @@ export const config = {
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET,
   accessTokenTtl: process.env.ACCESS_TOKEN_TTL || '15m',
   refreshTokenTtl: process.env.REFRESH_TOKEN_TTL || '7d',
-  clientOrigin: process.env.CLIENT_ORIGIN || '*'
+  clientOrigin: process.env.CLIENT_ORIGIN || '*',
+  emailFrom: process.env.EMAIL_FROM || '',
+  emailPass: process.env.EMAIL_PASS || '',
 };
 
 function assertEnv(name, value) {
@@ -23,5 +25,3 @@ export function assertRequiredEnv() {
   assertEnv('JWT_ACCESS_SECRET', config.jwtAccessSecret);
   assertEnv('JWT_REFRESH_SECRET', config.jwtRefreshSecret);
 }
-
-

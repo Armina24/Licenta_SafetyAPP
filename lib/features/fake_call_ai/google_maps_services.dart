@@ -10,14 +10,15 @@ class GoogleGeocodingService {
   const GoogleGeocodingService(this.apiKey);
 
   Future<LatLng> geocode(String address) async {
-    final uri = Uri.parse(
-      'https://maps.googleapis.com/maps/api/geocode/json',
-    ).replace(queryParameters: {
-      'address': address,
-      'key': apiKey,
-      'region': 'ro',
-      'language': 'ro',
-    });
+    final uri = Uri.parse('https://maps.googleapis.com/maps/api/geocode/json')
+        .replace(
+          queryParameters: {
+            'address': address,
+            'key': apiKey,
+            'region': 'ro',
+            'language': 'ro',
+          },
+        );
 
     final response = await http.get(uri);
     if (response.statusCode != 200) {
@@ -30,7 +31,8 @@ class GoogleGeocodingService {
       throw Exception('Nu am găsit adresa.');
     }
 
-    final location = results.first['geometry']['location'] as Map<String, dynamic>;
+    final location =
+        results.first['geometry']['location'] as Map<String, dynamic>;
     return LatLng(
       (location['lat'] as num).toDouble(),
       (location['lng'] as num).toDouble(),
@@ -65,16 +67,16 @@ class GoogleRoutesService {
             'latLng': {
               'latitude': origin.latitude,
               'longitude': origin.longitude,
-            }
-          }
+            },
+          },
         },
         'destination': {
           'location': {
             'latLng': {
               'latitude': destination.latitude,
               'longitude': destination.longitude,
-            }
-          }
+            },
+          },
         },
         'travelMode': 'WALK',
         'routingPreference': 'ROUTING_PREFERENCE_UNSPECIFIED',
@@ -96,7 +98,8 @@ class GoogleRoutesService {
 
     final route = routes.first as Map<String, dynamic>;
     final polyline =
-        (route['polyline'] as Map<String, dynamic>)['encodedPolyline'] as String;
+        (route['polyline'] as Map<String, dynamic>)['encodedPolyline']
+            as String;
 
     final legs = (route['legs'] as List?) ?? [];
     final steps = <NavStep>[];
@@ -104,11 +107,13 @@ class GoogleRoutesService {
       final legSteps = (leg as Map<String, dynamic>)['steps'] as List? ?? [];
       for (final step in legSteps) {
         final stepMap = step as Map<String, dynamic>;
-        final instruction = (stepMap['navigationInstruction']
-                as Map<String, dynamic>?)?['instructions']
-            as String?;
-        final endLoc = (stepMap['endLocation'] as Map<String, dynamic>?)?['latLng']
-            as Map<String, dynamic>?;
+        final instruction =
+            (stepMap['navigationInstruction']
+                    as Map<String, dynamic>?)?['instructions']
+                as String?;
+        final endLoc =
+            (stepMap['endLocation'] as Map<String, dynamic>?)?['latLng']
+                as Map<String, dynamic>?;
         if (instruction == null || endLoc == null) {
           continue;
         }

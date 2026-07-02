@@ -13,10 +13,7 @@ import 'fake_call_scenario.dart';
 class OpenAIFakeCallScreen extends StatefulWidget {
   final FakeCallScenario scenario;
 
-  const OpenAIFakeCallScreen({
-    super.key,
-    required this.scenario,
-  });
+  const OpenAIFakeCallScreen({super.key, required this.scenario});
 
   @override
   State<OpenAIFakeCallScreen> createState() => _OpenAIFakeCallScreenState();
@@ -24,7 +21,7 @@ class OpenAIFakeCallScreen extends StatefulWidget {
 
 class _OpenAIFakeCallScreenState extends State<OpenAIFakeCallScreen>
     with SingleTickerProviderStateMixin {
-  static const String _openAIKey = '';
+  static const String _openAIKey = String.fromEnvironment('OPENAI_API_KEY');
 
   late final AudioPlayer _audioPlayer;
   final AudioRecorder _recorder = AudioRecorder();
@@ -94,14 +91,16 @@ Pui întrebări simple și dai pași concreți, fără explicații lungi.
       _audioPlayer = AudioPlayer();
 
       _audioSession = await session.AudioSession.instance;
-      await _audioSession!.configure(const session.AudioSessionConfiguration(
-        avAudioSessionCategory: session.AVAudioSessionCategory.playAndRecord,
-        avAudioSessionMode: session.AVAudioSessionMode.voiceChat,
-        androidAudioAttributes: session.AndroidAudioAttributes(
-          usage: session.AndroidAudioUsage.voiceCommunication,
-          contentType: session.AndroidAudioContentType.speech,
+      await _audioSession!.configure(
+        const session.AudioSessionConfiguration(
+          avAudioSessionCategory: session.AVAudioSessionCategory.playAndRecord,
+          avAudioSessionMode: session.AVAudioSessionMode.voiceChat,
+          androidAudioAttributes: session.AndroidAudioAttributes(
+            usage: session.AndroidAudioUsage.voiceCommunication,
+            contentType: session.AndroidAudioContentType.speech,
+          ),
         ),
-      ));
+      );
 
       _startCallTimer();
 
@@ -333,36 +332,46 @@ Pui întrebări simple și dai pași concreți, fără explicații lungi.
 
     try {
       if (_isSpeakerOn) {
-        await _audioSession?.configure(const session.AudioSessionConfiguration(
-          avAudioSessionCategory: session.AVAudioSessionCategory.playAndRecord,
-          avAudioSessionMode: session.AVAudioSessionMode.videoChat,
-          androidAudioAttributes: session.AndroidAudioAttributes(
-            usage: session.AndroidAudioUsage.voiceCommunication,
-            contentType: session.AndroidAudioContentType.speech,
+        await _audioSession?.configure(
+          const session.AudioSessionConfiguration(
+            avAudioSessionCategory:
+                session.AVAudioSessionCategory.playAndRecord,
+            avAudioSessionMode: session.AVAudioSessionMode.videoChat,
+            androidAudioAttributes: session.AndroidAudioAttributes(
+              usage: session.AndroidAudioUsage.voiceCommunication,
+              contentType: session.AndroidAudioContentType.speech,
+            ),
+            androidAudioFocusGainType: session.AndroidAudioFocusGainType.gain,
           ),
-          androidAudioFocusGainType: session.AndroidAudioFocusGainType.gain,
-        ));
-        await _audioPlayer.setAudioContext(AudioContext(
-          android: AudioContextAndroid(
-            isSpeakerphoneOn: true,
-            audioMode: AndroidAudioMode.inCommunication,
+        );
+        await _audioPlayer.setAudioContext(
+          AudioContext(
+            android: AudioContextAndroid(
+              isSpeakerphoneOn: true,
+              audioMode: AndroidAudioMode.inCommunication,
+            ),
           ),
-        ));
+        );
       } else {
-        await _audioSession?.configure(const session.AudioSessionConfiguration(
-          avAudioSessionCategory: session.AVAudioSessionCategory.playAndRecord,
-          avAudioSessionMode: session.AVAudioSessionMode.voiceChat,
-          androidAudioAttributes: session.AndroidAudioAttributes(
-            usage: session.AndroidAudioUsage.voiceCommunication,
-            contentType: session.AndroidAudioContentType.speech,
+        await _audioSession?.configure(
+          const session.AudioSessionConfiguration(
+            avAudioSessionCategory:
+                session.AVAudioSessionCategory.playAndRecord,
+            avAudioSessionMode: session.AVAudioSessionMode.voiceChat,
+            androidAudioAttributes: session.AndroidAudioAttributes(
+              usage: session.AndroidAudioUsage.voiceCommunication,
+              contentType: session.AndroidAudioContentType.speech,
+            ),
           ),
-        ));
-        await _audioPlayer.setAudioContext(AudioContext(
-          android: AudioContextAndroid(
-            isSpeakerphoneOn: false,
-            audioMode: AndroidAudioMode.inCommunication,
+        );
+        await _audioPlayer.setAudioContext(
+          AudioContext(
+            android: AudioContextAndroid(
+              isSpeakerphoneOn: false,
+              audioMode: AndroidAudioMode.inCommunication,
+            ),
           ),
-        ));
+        );
       }
     } catch (_) {}
   }
@@ -393,8 +402,10 @@ Pui întrebări simple și dai pași concreți, fără explicații lungi.
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    _pulseAnimation =
-        Tween<double>(begin: 0.8, end: 1.0).animate(_pulseController);
+    _pulseAnimation = Tween<double>(
+      begin: 0.8,
+      end: 1.0,
+    ).animate(_pulseController);
   }
 
   @override
@@ -416,11 +427,7 @@ Pui întrebări simple și dai pași concreți, fără explicații lungi.
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Colors.black,
-              Colors.grey.shade900,
-              Colors.black,
-            ],
+            colors: [Colors.black, Colors.grey.shade900, Colors.black],
           ),
         ),
         child: SafeArea(
@@ -488,7 +495,9 @@ Pui întrebări simple și dai pași concreți, fără explicații lungi.
                     if (_currentAiLine.isNotEmpty)
                       Container(
                         margin: const EdgeInsets.symmetric(
-                            horizontal: 24, vertical: 16),
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.1),
@@ -527,8 +536,7 @@ Pui întrebări simple și dai pași concreți, fără explicații lungi.
                 ),
               ),
               Padding(
-                padding:
-                    const EdgeInsets.only(bottom: 40, left: 24, right: 24),
+                padding: const EdgeInsets.only(bottom: 40, left: 24, right: 24),
                 child: Column(
                   children: [
                     Row(
@@ -615,20 +623,13 @@ Pui întrebări simple și dai pași concreți, fără explicații lungi.
                 width: 1,
               ),
             ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 26,
-            ),
+            child: Icon(icon, color: Colors.white, size: 26),
           ),
         ),
         const SizedBox(height: 8),
         Text(
           label,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 12,
-          ),
+          style: const TextStyle(color: Colors.white70, fontSize: 12),
         ),
       ],
     );

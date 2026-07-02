@@ -16,7 +16,7 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
   void initState() {
     super.initState();
     _safetyTimerService = SafetyTimerService.instance;
-    // Listen for state changes
+
     _safetyTimerService.timerState.addListener(_onTimerStateChanged);
   }
 
@@ -85,7 +85,6 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Header card
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(24),
@@ -126,10 +125,7 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
                       const Text(
                         'Automatic emergency alert if you don\'t check in',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.white60,
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.white60),
                       ),
                     ],
                   ),
@@ -137,24 +133,23 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
 
                 const SizedBox(height: 32),
 
-                // Timer display (if active)
                 if (isActive)
                   Column(
                     children: [
-                      // Timer value
                       Text(
                         currentState!.remainingTimeFormatted,
                         style: TextStyle(
                           fontSize: 45,
                           fontWeight: FontWeight.bold,
-                          color: isWarning ? Colors.red : const Color(0xFFFF8C42),
+                          color: isWarning
+                              ? Colors.red
+                              : const Color(0xFFFF8C42),
                           fontFamily: 'Courier',
                         ),
                       ),
 
                       const SizedBox(height: 12),
 
-                      // Warning message if < 5 min
                       if (isWarning)
                         Container(
                           padding: const EdgeInsets.all(16),
@@ -191,7 +186,6 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
 
                       const SizedBox(height: 32),
 
-                      // Action buttons (when timer active)
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
@@ -216,15 +210,18 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
 
                       const SizedBox(height: 12),
 
-                      // Quick extend buttons
                       Row(
                         children: [
                           Expanded(
                             child: OutlinedButton(
                               onPressed: () => _extendTimer(5),
                               style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Color(0xFFFF8C42)),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                side: const BorderSide(
+                                  color: Color(0xFFFF8C42),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
                               ),
                               child: const Text(
                                 '+5 min',
@@ -237,8 +234,12 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
                             child: OutlinedButton(
                               onPressed: () => _extendTimer(15),
                               style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Color(0xFFFF8C42)),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                side: const BorderSide(
+                                  color: Color(0xFFFF8C42),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
                               ),
                               child: const Text(
                                 '+15 min',
@@ -251,8 +252,12 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
                             child: OutlinedButton(
                               onPressed: () => _extendTimer(30),
                               style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Color(0xFFFF8C42)),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                side: const BorderSide(
+                                  color: Color(0xFFFF8C42),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
                               ),
                               child: const Text(
                                 '+30 min',
@@ -267,7 +272,6 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
                     ],
                   )
                 else
-                  // Timer not active - show preset options
                   Column(
                     children: [
                       Text(
@@ -275,11 +279,13 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: isDarkMode ? AppTheme.textPrimary : const Color(0xFF1F1F1F),
+                          color: isDarkMode
+                              ? AppTheme.textPrimary
+                              : const Color(0xFF1F1F1F),
                         ),
                       ),
                       const SizedBox(height: 24),
-                      // Preset timer buttons
+
                       _buildTimerButton(
                         label: '15 minutes',
                         duration: 6,
@@ -315,14 +321,17 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
                     ],
                   ),
 
-                // Info section
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: isDarkMode ? AppTheme.glassDarkMedium : const Color(0xFFFFF8F0),
+                    color: isDarkMode
+                        ? AppTheme.glassDarkMedium
+                        : const Color(0xFFFFF8F0),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isDarkMode ? AppTheme.glassBorder : const Color(0xFFFFE0CC),
+                      color: isDarkMode
+                          ? AppTheme.glassBorder
+                          : const Color(0xFFFFE0CC),
                     ),
                   ),
                   child: Column(
@@ -332,7 +341,9 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
                         'How it works:',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: isDarkMode ? AppTheme.textPrimary : const Color(0xFF1F1F1F),
+                          color: isDarkMode
+                              ? AppTheme.textPrimary
+                              : const Color(0xFF1F1F1F),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -405,11 +416,7 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
                 color: const Color(0xFFFF8C42).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(
-                icon,
-                color: const Color(0xFFFF8C42),
-                size: 24,
-              ),
+              child: Icon(icon, color: const Color(0xFFFF8C42), size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -421,7 +428,9 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: isDarkMode ? AppTheme.textPrimary : const Color(0xFF1F1F1F),
+                      color: isDarkMode
+                          ? AppTheme.textPrimary
+                          : const Color(0xFF1F1F1F),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -429,23 +438,26 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
                     description,
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDarkMode ? AppTheme.textSecondary : Colors.grey.shade600,
+                      color: isDarkMode
+                          ? AppTheme.textSecondary
+                          : Colors.grey.shade600,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(
-              Icons.arrow_forward_rounded,
-              color: Color(0xFFFF8C42),
-            ),
+            const Icon(Icons.arrow_forward_rounded, color: Color(0xFFFF8C42)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInfoItem(String number, String text, {required bool isDarkMode}) {
+  Widget _buildInfoItem(
+    String number,
+    String text, {
+    required bool isDarkMode,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -475,7 +487,9 @@ class _SafetyTimerPageState extends State<SafetyTimerPage> {
               text,
               style: TextStyle(
                 fontSize: 13,
-                color: isDarkMode ? AppTheme.textSecondary : const Color(0xFF555555),
+                color: isDarkMode
+                    ? AppTheme.textSecondary
+                    : const Color(0xFF555555),
                 height: 1.4,
               ),
             ),

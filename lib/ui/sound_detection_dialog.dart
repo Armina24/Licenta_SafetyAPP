@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 
 class SoundDetectionDialog extends StatefulWidget {
-  final String threatType; // "Scream" or "Glass Breaking"
-  final double confidenceScore; // 0.0 - 1.0
+  final String threatType;
+  final double confidenceScore;
   final Function onFalseAlarm;
   final Function onHelpNow;
   final Function onTimeout;
@@ -43,7 +43,9 @@ class _SoundDetectionDialogState extends State<SoundDetectionDialog>
   }
 
   void _startCountdown() {
-    _countdownTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+    _countdownTimer = Timer.periodic(const Duration(milliseconds: 100), (
+      timer,
+    ) {
       if (!mounted) return;
 
       setState(() {
@@ -96,11 +98,11 @@ class _SoundDetectionDialogState extends State<SoundDetectionDialog>
   @override
   Widget build(BuildContext context) {
     final totalSeconds = widget.countdownDuration.inSeconds.toDouble();
-    final elapsedSeconds = (widget.countdownDuration - _remainingTime).inMilliseconds / 1000.0;
+    final elapsedSeconds =
+        (widget.countdownDuration - _remainingTime).inMilliseconds / 1000.0;
     final progress = (elapsedSeconds / totalSeconds).clamp(0.0, 1.0);
     final secondsRemaining = _remainingTime.inSeconds;
 
-    // Get threat icon and color based on threat type
     final threatColor = _getThreatColor();
     final threatIcon = _getThreatIcon();
 
@@ -127,7 +129,6 @@ class _SoundDetectionDialogState extends State<SoundDetectionDialog>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Header with threat icon - animated pulse effect
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -144,10 +145,11 @@ class _SoundDetectionDialogState extends State<SoundDetectionDialog>
                     padding: const EdgeInsets.symmetric(vertical: 24),
                     child: Column(
                       children: [
-                        // Pulsing icon
                         ScaleTransition(
-                          scale: Tween<double>(begin: 0.8, end: 1.0)
-                              .animate(_pulseController),
+                          scale: Tween<double>(
+                            begin: 0.8,
+                            end: 1.0,
+                          ).animate(_pulseController),
                           child: Container(
                             width: 80,
                             height: 80,
@@ -184,7 +186,6 @@ class _SoundDetectionDialogState extends State<SoundDetectionDialog>
                     ),
                   ),
 
-                  // Main content
                   Padding(
                     padding: const EdgeInsets.all(24),
                     child: Column(
@@ -209,7 +210,6 @@ class _SoundDetectionDialogState extends State<SoundDetectionDialog>
                         ),
                         const SizedBox(height: 24),
 
-                        // Countdown progress indicator
                         Column(
                           children: [
                             ClipRRect(
@@ -254,8 +254,6 @@ class _SoundDetectionDialogState extends State<SoundDetectionDialog>
                         ),
                         const SizedBox(height: 32),
 
-                        // Action buttons
-                        // Row 1: Primary action (Help Now)
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
@@ -280,7 +278,6 @@ class _SoundDetectionDialogState extends State<SoundDetectionDialog>
                         ),
                         const SizedBox(height: 12),
 
-                        // Row 2: Secondary action (False Alarm)
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton(
@@ -308,7 +305,6 @@ class _SoundDetectionDialogState extends State<SoundDetectionDialog>
 
                         const SizedBox(height: 16),
 
-                        // Info text
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
@@ -354,12 +350,12 @@ class _SoundDetectionDialogState extends State<SoundDetectionDialog>
   Color _getThreatColor() {
     if (widget.threatType.toLowerCase().contains('scream') ||
         widget.threatType.toLowerCase().contains('tipete')) {
-      return Color(0xFFFF6B35); // Orange for screams
+      return Color(0xFFFF6B35);
     } else if (widget.threatType.toLowerCase().contains('glass') ||
         widget.threatType.toLowerCase().contains('spargere')) {
-      return Color(0xFF7B2CBF); // Purple for glass breaking
+      return Color(0xFF7B2CBF);
     }
-    return Color(0xFFFF6B35); // Default
+    return Color(0xFFFF6B35);
   }
 
   IconData _getThreatIcon() {

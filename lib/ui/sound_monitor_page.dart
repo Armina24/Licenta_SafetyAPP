@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../services/audio_YAMNet/audio_monitor_service.dart';
-import '../services/audio_YAMNet/audio_threat_detection_service.dart';
+import '../services/audio_yamnet/audio_monitor_service.dart';
+import '../services/audio_yamnet/audio_threat_detection_service.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'sound_detection_dialog.dart';
@@ -15,9 +15,9 @@ class SoundMonitorPage extends StatefulWidget {
 }
 
 class _SoundMonitorPageState extends State<SoundMonitorPage> {
-  bool _fgMonitoring = false;    //monitorizare doar cand e deschisa pagina
-  bool _bgMonitoring = false;    //monitorizare in bg (via service)
-  bool _trialBgService = false;  //trial service using BackgroundSoundService
+  bool _fgMonitoring = false;
+  bool _bgMonitoring = false;
+  bool _trialBgService = false;
   String _lastEvent = 'Nimic detectat încă';
   late final AudioThreatDetectionService _threatDetectionService;
 
@@ -30,21 +30,18 @@ class _SoundMonitorPageState extends State<SoundMonitorPage> {
       onPreAlarmConfirmed: _onPreAlarmConfirmed,
       onPreAlarmCancelled: _onPreAlarmCancelled,
     );
-    
-    // Check if Safety Shield is active and auto-enable monitoring
+
     _checkSafetyShieldState();
   }
 
-  /// Check if Safety Shield is active and auto-activate foreground monitoring
   Future<void> _checkSafetyShieldState() async {
     final prefs = await SharedPreferences.getInstance();
     final isSafetyShieldActive = prefs.getBool('safety_shield_active') ?? false;
-    
+
     if (isSafetyShieldActive && !_fgMonitoring) {
-      // Auto-enable foreground monitoring if Safety Shield is active
       final micStatus = await Permission.microphone.request();
       if (!mounted) return;
-      
+
       if (micStatus.isGranted) {
         await AudioMonitorService.instance.startMonitoring(
           onAlert: (result) {
@@ -63,7 +60,8 @@ class _SoundMonitorPageState extends State<SoundMonitorPage> {
         );
         setState(() {
           _fgMonitoring = true;
-          _lastEvent = 'Monitorizare sunete (foreground) PORNITĂ (Safety Shield Active)';
+          _lastEvent =
+              'Monitorizare sunete (foreground) PORNITĂ (Safety Shield Active)';
         });
       }
     }
@@ -75,21 +73,22 @@ class _SoundMonitorPageState extends State<SoundMonitorPage> {
     super.dispose();
   }
 
-  /// Called when a threat is detected
   void _onThreatDetected(ThreatDetectionEvent event) {
-    debugPrint('🚨 Threat detected: ${event.threatType} @ ${event.confidenceScore.toStringAsFixed(2)}');
+    debugPrint(
+      '🚨 Threat detected: ${event.threatType} @ ${event.confidenceScore.toStringAsFixed(2)}',
+    );
     setState(() {
-      _lastEvent = 'Alertă: ${event.threatType} (${(event.confidenceScore * 100).toStringAsFixed(0)}%)';
+      _lastEvent =
+          'Alertă: ${event.threatType} (${(event.confidenceScore * 100).toStringAsFixed(0)}%)';
     });
   }
 
-  /// Called when pre-alarm is confirmed (timeout or user action)
   void _onPreAlarmConfirmed(ThreatDetectionEvent event) {
     debugPrint('✓ Pre-alarm confirmed - executing SOS');
     setState(() {
       _lastEvent = 'SOS TRIMIS pentru ${event.threatType}!';
     });
-    // Here you would call _sendSos() from your emergency service
+
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -100,7 +99,6 @@ class _SoundMonitorPageState extends State<SoundMonitorPage> {
     );
   }
 
-  /// Called when user dismisses as false alarm
   void _onPreAlarmCancelled(ThreatDetectionEvent event, String reason) {
     debugPrint('✓ Pre-alarm cancelled: $reason');
     setState(() {
@@ -116,9 +114,15 @@ class _SoundMonitorPageState extends State<SoundMonitorPage> {
     );
   }
 
-  /// Show sound detection dialog when threat is detected
   void _showSoundDetectionDialog(ThreatDetectionEvent event) {
-    String threatTypeLabel = event.threatType == ThreatType.scream ? 'Scream' : 'Glass Breaking';
+    String threatTypeLabel;
+    if (event.threatType == ThreatType.scream) {
+      threatTypeLabel = 'Scream';
+    } else if (event.threatType == ThreatType.crowdNoise) {
+      threatTypeLabel = 'Crowd Noise';
+    } else {
+      threatTypeLabel = 'Glass Breaking';
+    }
 
     showDialog(
       context: context,
@@ -134,7 +138,7 @@ class _SoundMonitorPageState extends State<SoundMonitorPage> {
           _threatDetectionService.handleHelpNow();
         },
         onTimeout: () {
-          _threatDetectionService.handleHelpNow(); // Auto-execute
+          _threatDetectionService.handleHelpNow();
         },
       ),
     );
@@ -148,16 +152,16 @@ class _SoundMonitorPageState extends State<SoundMonitorPage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // 1) Buton pentru monitorizare DOAR cât timp e pagina deschisă (foreground)
             ElevatedButton(
               onPressed: () async {
-                // cerem permisiunea aici, în UI
                 final micStatus = await Permission.microphone.request();
                 if (!context.mounted) return;
                 if (!micStatus.isGranted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Permisiunea pentru microfon este necesară.'),
+                      content: Text(
+                        'Permisiunea pentru microfon este necesară.',
+                      ),
                     ),
                   );
                   return;
@@ -172,16 +176,15 @@ class _SoundMonitorPageState extends State<SoundMonitorPage> {
                 } else {
                   await AudioMonitorService.instance.startMonitoring(
                     onAlert: (result) {
-                      // Process sound through threat detection service
                       _threatDetectionService.processSoundDetection(result);
 
                       setState(() {
                         _lastEvent = 'Detectare sunet: $result';
                       });
 
-                      // If there's an active pre-alarm, show the dialog
                       if (_threatDetectionService.hasActivePreAlarm) {
-                        final prealarm = _threatDetectionService.currentPreAlarm;
+                        final prealarm =
+                            _threatDetectionService.currentPreAlarm;
                         if (prealarm != null) {
                           _showSoundDetectionDialog(prealarm.threatEvent);
                         }
@@ -203,7 +206,6 @@ class _SoundMonitorPageState extends State<SoundMonitorPage> {
 
             const SizedBox(height: 24),
 
-            // 2.5) Buton de test pentru noul serviciu simplu (heartbeat)
             ElevatedButton(
               onPressed: () async {
                 if (_trialBgService) {
@@ -228,18 +230,18 @@ class _SoundMonitorPageState extends State<SoundMonitorPage> {
             ),
             const SizedBox(height: 24),
 
-            // 2) Buton pentru monitorizare în FUNDAL (prin background service)
             ElevatedButton(
               onPressed: () async {
                 final service = FlutterBackgroundService();
 
-                // cerem permisiunea de microfon în UI
                 final micStatus = await Permission.microphone.request();
                 if (!context.mounted) return;
                 if (!micStatus.isGranted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Permisiunea pentru microfon este necesară.'),
+                      content: Text(
+                        'Permisiunea pentru microfon este necesară.',
+                      ),
                     ),
                   );
                   return;
@@ -250,8 +252,8 @@ class _SoundMonitorPageState extends State<SoundMonitorPage> {
 
                 if (!isRunning) {
                   debugPrint('UI: pornesc background service...');
-                  await service.startService(); // ⬅️ AICI declanșăm _onStart
-                  // dăm un pic de timp isolate-ului să pornească și să atașeze listener-ele
+                  await service.startService();
+
                   await Future.delayed(const Duration(seconds: 1));
                 }
 

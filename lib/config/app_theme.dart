@@ -1,22 +1,17 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // --- Dark Mode Deep Colors ---
-  // Gradient background
   static const Color darkGradientTop = Color(0xFF1A1F38);
   static const Color darkGradientBottom = Color(0xFF101020);
 
-  // Text colors
   static const Color textPrimary = Colors.white;
   static const Color textSecondary = Color(0xFFB0B0C3);
   static const Color textTertiary = Color(0xFF878899);
 
-  // Glassmorphism (cards, containers)
-  static const Color glassDarkMedium = Color(0x19FFFFFF); // 10% opacity white
-  static const Color glassDarkLight = Color(0x0DFFFFFF); // 5% opacity white
-  static const Color glassBorder = Color(0x19FFFFFF); // 10% opacity for borders
+  static const Color glassDarkMedium = Color(0x19FFFFFF);
+  static const Color glassDarkLight = Color(0x0DFFFFFF);
+  static const Color glassBorder = Color(0x19FFFFFF);
 
-  // Accent colors (neon/vibrant)
   static const Color accentOrange = Color(0xFFFF8C42);
   static const Color accentRed = Color(0xFFFF4757);
   static const Color accentTeal = Color(0xFF00D2BA);
@@ -24,12 +19,10 @@ class AppTheme {
   static const Color accentPurple = Color(0xFF9D4EDD);
   static const Color accentGreen = Color(0xFF26D07C);
 
-  // Neutral colors for dark mode
   static const Color darkNavy = Color(0xFF1A1F38);
   static const Color darkCardBackground = Color(0xFF2A2F48);
   static const Color darkBorder = Color(0xFF3A3F58);
 
-  // --- Create Dark Theme for Material3 ---
   static ThemeData darkTheme() {
     const seedColor = Color(0xFFFF8C42);
 
@@ -37,16 +30,16 @@ class AppTheme {
       useMaterial3: true,
       fontFamily: 'Roboto',
       brightness: Brightness.dark,
-      // Scaffold background will be handled by ScaffoldWrapper
+
       scaffoldBackgroundColor: Colors.transparent,
       colorScheme: ColorScheme.fromSeed(
         seedColor: seedColor,
         brightness: Brightness.dark,
-        // Override specific colors for consistency
+
         surface: glassDarkMedium,
         onSurface: textPrimary,
       ),
-      // AppBar
+
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -59,7 +52,7 @@ class AppTheme {
           fontFamily: 'Roboto',
         ),
       ),
-      // Cards
+
       cardTheme: CardThemeData(
         color: glassDarkMedium,
         elevation: 2,
@@ -68,7 +61,7 @@ class AppTheme {
           side: const BorderSide(color: glassBorder, width: 1),
         ),
       ),
-      // Buttons
+
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: accentOrange,
@@ -93,11 +86,14 @@ class AppTheme {
           ),
         ),
       ),
-      // Input decoration
+
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: glassDarkMedium,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: glassBorder, width: 1),
@@ -113,7 +109,7 @@ class AppTheme {
         labelStyle: const TextStyle(color: textSecondary),
         hintStyle: const TextStyle(color: textTertiary),
       ),
-      // Text theme
+
       textTheme: const TextTheme(
         displayLarge: TextStyle(
           color: textPrimary,
@@ -167,12 +163,12 @@ class AppTheme {
           fontFamily: 'Roboto',
         ),
       ),
-      // List tiles
+
       listTileTheme: const ListTileThemeData(
         textColor: textPrimary,
         iconColor: textSecondary,
       ),
-      // Switch theme
+
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {

@@ -27,9 +27,7 @@ class SpeechQueue {
       final item = _queue.removeAt(0);
       try {
         await speak(item.text);
-      } catch (_) {
-        // ignore TTS errors to keep queue moving
-      }
+      } catch (_) {}
       await Future<void>.delayed(const Duration(milliseconds: 120));
     }
     _busy = false;

@@ -5,14 +5,10 @@ import 'package:vibration/vibration.dart';
 import 'fake_call_scenario.dart';
 import '../../services/audio_routing_service.dart';
 
-/// Active call screen with Smart VAD, audio routing, mute, keypad, and timer
 class ActiveCallScreen extends StatefulWidget {
   final FakeCallScenario scenario;
 
-  const ActiveCallScreen({
-    super.key,
-    required this.scenario,
-  });
+  const ActiveCallScreen({super.key, required this.scenario});
 
   @override
   State<ActiveCallScreen> createState() => _ActiveCallScreenState();
@@ -20,7 +16,6 @@ class ActiveCallScreen extends StatefulWidget {
 
 class _ActiveCallScreenState extends State<ActiveCallScreen>
     with SingleTickerProviderStateMixin {
-  // Audio and timing
   static const List<String> _socialAudios = [
     'sounds/social_1.mp3',
     'sounds/social_2.mp3',
@@ -59,12 +54,10 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
   List<String> _currentScriptLines = [];
   bool _isCallActive = true;
 
-  // State tracking
   bool _isMuted = false;
   bool _isSpeakerEnabled = false;
   bool _isVadActive = true;
 
-  // Keypad state
   bool _showKeypad = false;
 
   @override
@@ -75,7 +68,6 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
 
   Future<void> _initializeCall() async {
     try {
-      // Load audio list based on scenario
       if (widget.scenario == FakeCallScenario.social) {
         _currentAudioList = List<String>.from(_socialAudios);
         _currentScriptLines = List<String>.from(_socialScriptLines);
@@ -84,35 +76,27 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
         _currentScriptLines = List<String>.from(_safetyScriptLines);
       }
 
-      // Initialize audio routing service
       await _audioRoutingService.initializeCallAudioSession();
 
-      // Setup pulse animation
       _pulseController = AnimationController(
         duration: const Duration(milliseconds: 1500),
         vsync: this,
       );
 
       _pulseAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
-        CurvedAnimation(
-          parent: _pulseController,
-          curve: Curves.easeInOut,
-        ),
+        CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
       );
 
       _pulseController.repeat(reverse: true);
 
-      // Start call duration timer
       _callTimer = Timer.periodic(const Duration(seconds: 1), (_) {
         setState(() {
           _callDuration++;
         });
       });
 
-      // Start VAD check timer (simulating voice activity detection)
       _startSmartVadCheck();
 
-      // Run scripted MP3 sequence
       _runScriptSequence();
 
       setState(() {});
@@ -124,7 +108,6 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
   Future<void> _runScriptSequence() async {
     if (_currentAudioList.isEmpty || _currentScriptLines.isEmpty) return;
 
-    // Așteptăm 2 secunde la început ca tu să zici "Alo?"
     await Future.delayed(const Duration(seconds: 2));
     if (!_isCallActive) return;
 
@@ -138,7 +121,6 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
 
       if (!_isCallActive) break;
 
-      // Timp pentru răspunsul utilizatorului
       _pulseController.stop();
       await Future.delayed(const Duration(seconds: 4));
       if (_isCallActive) {
@@ -167,23 +149,16 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
   }
 
   void _startSmartVadCheck() {
-    // Simulate VAD: check for voice activity every 100ms
-    _vadCheckTimer =
-        Timer.periodic(const Duration(milliseconds: 100), (_) async {
+    _vadCheckTimer = Timer.periodic(const Duration(milliseconds: 100), (
+      _,
+    ) async {
       if (!_isMuted && _isVadActive) {
-        // Simulate VAD detection with random peaks (in real app, analyze audio)
-        // This would integrate with your audio analysis service
-        // For now, we simulate it
         _simulateVadDetection();
       }
     });
   }
 
-  void _simulateVadDetection() {
-    // Simulate voice activity detection
-    // In a real implementation, this would analyze actual microphone input
-    // or the received audio stream
-  }
+  void _simulateVadDetection() {}
 
   Future<void> _toggleMute() async {
     setState(() {
@@ -191,12 +166,10 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
     });
 
     if (_isMuted) {
-      // When muted, pause VAD monitoring
       _isVadActive = false;
       await Vibration.vibrate(duration: 100);
       debugPrint('Muted - VAD paused');
     } else {
-      // When unmuted, resume VAD monitoring
       _isVadActive = true;
       await Vibration.vibrate(duration: 100);
       debugPrint('Unmuted - VAD resumed');
@@ -248,7 +221,6 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Handle bar
             Container(
               width: 40,
               height: 5,
@@ -259,17 +231,12 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
             ),
             const SizedBox(height: 24),
 
-            // Title
             const Text(
               'Keypad',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
 
-            // Keypad grid
             Column(
               children: [
                 _buildKeypadRow(['1', '2', '3']),
@@ -298,7 +265,6 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
   Widget _buildKeypadButton(String key) {
     return GestureDetector(
       onTap: () {
-        // Play DTMF tone (optional)
         _playKeypadTone(key);
         Vibration.vibrate(duration: 50);
       },
@@ -312,10 +278,7 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
         child: Center(
           child: Text(
             key,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
         ),
       ),
@@ -323,7 +286,6 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
   }
 
   void _playKeypadTone(String key) {
-    // In a real implementation, play DTMF tones
     debugPrint('Keypad pressed: $key');
   }
 
@@ -340,7 +302,9 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
   }
 
   String _getCallerName() {
-    return widget.scenario == FakeCallScenario.social ? 'Tata' : 'Emergency Contact';
+    return widget.scenario == FakeCallScenario.social
+        ? 'Tata'
+        : 'Emergency Contact';
   }
 
   Color _getThemeColor() {
@@ -385,7 +349,6 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
         child: SafeArea(
           child: Column(
             children: [
-              // Top bar with status and timer
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
@@ -425,7 +388,6 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
 
               const Spacer(),
 
-              // Caller avatar with pulse
               AnimatedBuilder(
                 animation: _pulseAnimation,
                 builder: (context, child) {
@@ -459,7 +421,6 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
 
               const SizedBox(height: 32),
 
-              // Caller name
               Text(
                 callerName,
                 style: const TextStyle(
@@ -471,29 +432,22 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
 
               const SizedBox(height: 8),
 
-              // Caller subtitle
               Text(
                 widget.scenario == FakeCallScenario.social
                     ? 'Mobile'
                     : 'Emergency Contact',
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 16,
-                ),
+                style: const TextStyle(color: Colors.white70, fontSize: 16),
               ),
 
               const Spacer(),
 
-              // Call control buttons
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: Column(
                   children: [
-                    // Quick action buttons
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        // Mute button
                         _CallControlButton(
                           icon: _isMuted ? Icons.mic_off : Icons.mic,
                           label: _isMuted ? 'Unmute' : 'Mute',
@@ -501,7 +455,6 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
                           onPressed: _toggleMute,
                         ),
 
-                        // Keypad button
                         _CallControlButton(
                           icon: Icons.dialpad,
                           label: 'Keypad',
@@ -509,7 +462,6 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
                           onPressed: _showKeypadModal,
                         ),
 
-                        // Speaker button
                         _CallControlButton(
                           icon: _isSpeakerEnabled
                               ? Icons.volume_up
@@ -525,7 +477,6 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
 
                     const SizedBox(height: 32),
 
-                    // End call button
                     _CallActionButton(
                       icon: Icons.call_end,
                       color: Colors.red,
@@ -545,7 +496,6 @@ class _ActiveCallScreenState extends State<ActiveCallScreen>
   }
 }
 
-/// Call control button for mute/speaker/keypad
 class _CallControlButton extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -574,19 +524,12 @@ class _CallControlButton extends StatelessWidget {
                   : Colors.white.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              icon,
-              size: 22,
-              color: Colors.white,
-            ),
+            child: Icon(icon, size: 22, color: Colors.white),
           ),
           const SizedBox(height: 8),
           Text(
             label,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 12,
-            ),
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
           ),
         ],
       ),
@@ -594,7 +537,6 @@ class _CallControlButton extends StatelessWidget {
   }
 }
 
-/// Call action button (End call)
 class _CallActionButton extends StatelessWidget {
   final IconData icon;
   final Color color;
@@ -621,11 +563,7 @@ class _CallActionButton extends StatelessWidget {
             elevation: 8,
             child: Container(
               padding: const EdgeInsets.all(20),
-              child: Icon(
-                icon,
-                size: 32,
-                color: Colors.white,
-              ),
+              child: Icon(icon, size: 32, color: Colors.white),
             ),
           ),
           const SizedBox(height: 12),
@@ -642,4 +580,3 @@ class _CallActionButton extends StatelessWidget {
     );
   }
 }
-

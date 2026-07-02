@@ -19,7 +19,8 @@ class _SignupContactsPageState extends State<SignupContactsPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _signupArgs ??= ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    _signupArgs ??=
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
   }
 
   @override
@@ -52,10 +53,7 @@ class _SignupContactsPageState extends State<SignupContactsPage> {
         actions: [
           TextButton(
             onPressed: _skipOrContinue,
-            child: const Text(
-              'Skip',
-              style: TextStyle(color: Colors.grey),
-            ),
+            child: const Text('Skip', style: TextStyle(color: Colors.grey)),
           ),
         ],
       ),
@@ -163,8 +161,7 @@ extension on _SignupContactsPageState {
     }
 
     final contacts = <Map<String, String>>[];
-    
-    // Save contact 1 if both name and phone are provided
+
     if (_contact1NameController.text.trim().isNotEmpty &&
         _contact1PhoneController.text.trim().isNotEmpty) {
       contacts.add({
@@ -172,8 +169,7 @@ extension on _SignupContactsPageState {
         'phone': _contact1PhoneController.text.trim(),
       });
     }
-    
-    // Save contact 2 if both name and phone are provided
+
     if (_contact2NameController.text.trim().isNotEmpty &&
         _contact2PhoneController.text.trim().isNotEmpty) {
       contacts.add({
@@ -183,16 +179,14 @@ extension on _SignupContactsPageState {
     }
 
     final prefs = await SharedPreferences.getInstance();
-    
-    // Save in new format (name::phone|name::phone)
+
     if (contacts.isNotEmpty) {
       final contactsJson = contacts
           .map((c) => '${c['name']}::${c['phone']}')
           .join('|');
       await prefs.setString('emergency_contacts_list', contactsJson);
     }
-    
-    // Also save phone numbers in old format for compatibility
+
     final phones = contacts.map((c) => c['phone']!).toList();
     await prefs.setString('emergency_contacts', phones.join(','));
 

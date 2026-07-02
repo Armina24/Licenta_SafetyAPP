@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_theme.dart';
+import '../services/user_profile_storage.dart';
+import '../services/profile_service.dart';
 
 class AccountInfoScreen extends StatefulWidget {
   final String? userEmail;
@@ -17,12 +19,51 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
   late TextEditingController _phoneController;
   late TextEditingController _dateOfBirthController;
   late TextEditingController _addressController;
-  
+
   String? _selectedGender;
   bool _isLoading = false;
   bool _isSaving = false;
-  
-  final List<String> _genders = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
+
+  final List<String> _genders = [
+    'Male',
+    'Female',
+    'Non-binary',
+    'Prefer not to say',
+  ];
+
+  String? _labelFromStored(String? stored) {
+    if (stored == null) return null;
+    switch (stored.toLowerCase()) {
+      case 'male':
+        return 'Male';
+      case 'female':
+        return 'Female';
+      case 'other':
+      case 'prefer not to say':
+        return 'Prefer not to say';
+      case 'non-binary':
+      case 'nonbinary':
+        return 'Non-binary';
+      default:
+        return stored;
+    }
+  }
+
+  String? _storedFromLabel(String? label) {
+    if (label == null) return null;
+    switch (label) {
+      case 'Male':
+        return 'male';
+      case 'Female':
+        return 'female';
+      case 'Non-binary':
+        return 'nonbinary';
+      case 'Prefer not to say':
+        return 'other';
+      default:
+        return label;
+    }
+  }
 
   @override
   void initState() {
@@ -38,13 +79,27 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
   Future<void> _loadUserData() async {
     setState(() => _isLoading = true);
     final prefs = await SharedPreferences.getInstance();
-    
+    final fullName = UserProfileStorage.getString(prefs, 'fullName') ?? '';
+    final phone =
+        UserProfileStorage.getString(
+          prefs,
+          'phone',
+          legacyKeys: const ['phoneNumber'],
+        ) ??
+        '';
+    final dateOfBirth =
+        UserProfileStorage.getString(prefs, 'dateOfBirth') ?? '';
+    final gender = UserProfileStorage.getString(prefs, 'gender');
+    final homeAddress =
+        UserProfileStorage.getString(prefs, 'homeAddress') ?? '';
+
     setState(() {
-      _fullNameController.text = prefs.getString('fullName') ?? '';
-      _phoneController.text = prefs.getString('phone') ?? '';
-      _dateOfBirthController.text = prefs.getString('dateOfBirth') ?? '';
-      _selectedGender = prefs.getString('gender');
-      _addressController.text = prefs.getString('homeAddress') ?? '';
+      _fullNameController.text = fullName;
+      _phoneController.text = phone;
+      _dateOfBirthController.text = dateOfBirth;
+
+      _selectedGender = _labelFromStored(gender);
+      _addressController.text = homeAddress;
       _isLoading = false;
     });
   }
@@ -61,13 +116,42 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
     final prefs = await SharedPreferences.getInstance();
 
     try {
-      await prefs.setString('fullName', _fullNameController.text);
-      await prefs.setString('phone', _phoneController.text);
-      await prefs.setString('dateOfBirth', _dateOfBirthController.text);
+      await UserProfileStorage.setString(
+        prefs,
+        'fullName',
+        _fullNameController.text,
+      );
+      await UserProfileStorage.setString(
+        prefs,
+        'phone',
+        _phoneController.text,
+        legacyKeys: const ['phoneNumber'],
+      );
+      await UserProfileStorage.setString(
+        prefs,
+        'dateOfBirth',
+        _dateOfBirthController.text,
+      );
       if (_selectedGender != null) {
-        await prefs.setString('gender', _selectedGender!);
+        final stored = _storedFromLabel(_selectedGender);
+        if (stored != null) {
+          await UserProfileStorage.setString(prefs, 'gender', stored);
+        }
       }
-      await prefs.setString('homeAddress', _addressController.text);
+      await UserProfileStorage.setString(
+        prefs,
+        'homeAddress',
+        _addressController.text,
+      );
+
+      try {
+        await ProfileService.instance.updateProfile(
+          displayName: _fullNameController.text.trim(),
+          phoneNumber: _phoneController.text.trim(),
+        );
+      } catch (e) {
+        debugPrint('Failed to sync profile update to server: $e');
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -80,9 +164,9 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving changes: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error saving changes: $e')));
       }
     } finally {
       if (mounted) {
@@ -105,13 +189,13 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDarkMode ? Colors.transparent : const Color(0xFFFFF8F2);
-    final textColor =
-        isDarkMode ? AppTheme.textPrimary : const Color(0xFF1F1F1F);
-    final secondaryTextColor =
-        isDarkMode ? AppTheme.textSecondary : const Color(0xFF707070);
-    final fieldBgColor = isDarkMode
-        ? AppTheme.glassDarkMedium
-        : Colors.white;
+    final textColor = isDarkMode
+        ? AppTheme.textPrimary
+        : const Color(0xFF1F1F1F);
+    final secondaryTextColor = isDarkMode
+        ? AppTheme.textSecondary
+        : const Color(0xFF707070);
+    final fieldBgColor = isDarkMode ? AppTheme.glassDarkMedium : Colors.white;
     final fieldBorderColor = isDarkMode
         ? AppTheme.glassBorder
         : const Color(0xFFE0E0E0);
@@ -121,10 +205,7 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
       appBar: AppBar(
         backgroundColor: bgColor,
         elevation: 0,
-        title: Text(
-          'Account Information',
-          style: TextStyle(color: textColor),
-        ),
+        title: Text('Account Information', style: TextStyle(color: textColor)),
         centerTitle: true,
         iconTheme: IconThemeData(color: textColor),
       ),
@@ -135,7 +216,6 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Full Name
                   _buildTextField(
                     controller: _fullNameController,
                     label: 'Full Name',
@@ -148,7 +228,6 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Email (Read-only)
                   _buildTextField(
                     controller: _emailController,
                     label: 'Email Address',
@@ -162,7 +241,6 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Phone Number
                   _buildTextField(
                     controller: _phoneController,
                     label: 'Phone Number',
@@ -176,7 +254,6 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Date of Birth
                   _buildTextField(
                     controller: _dateOfBirthController,
                     label: 'Date of Birth (DD/MM/YYYY)',
@@ -201,7 +278,6 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Gender Dropdown
                   Text(
                     'Gender',
                     style: TextStyle(
@@ -227,10 +303,12 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
                       isExpanded: true,
                       underline: const SizedBox(),
                       items: _genders
-                          .map((gender) => DropdownMenuItem(
-                                value: gender,
-                                child: Text(gender),
-                              ))
+                          .map(
+                            (gender) => DropdownMenuItem(
+                              value: gender,
+                              child: Text(gender),
+                            ),
+                          )
                           .toList(),
                       onChanged: (value) {
                         setState(() => _selectedGender = value);
@@ -241,7 +319,6 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Home Address
                   _buildTextField(
                     controller: _addressController,
                     label: 'Home Address',
@@ -255,7 +332,6 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Save Button
                   ElevatedButton(
                     onPressed: _isSaving ? null : _saveChanges,
                     style: ElevatedButton.styleFrom(
@@ -265,7 +341,9 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      disabledBackgroundColor: Colors.grey.withValues(alpha: 0.5),
+                      disabledBackgroundColor: Colors.grey.withValues(
+                        alpha: 0.5,
+                      ),
                     ),
                     child: _isSaving
                         ? const SizedBox(
@@ -273,8 +351,9 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
                             width: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
                             ),
                           )
                         : const Text(
@@ -290,10 +369,7 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
                     onPressed: () => Navigator.pop(context),
                     child: Text(
                       'Cancel',
-                      style: TextStyle(
-                        color: secondaryTextColor,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: secondaryTextColor, fontSize: 16),
                     ),
                   ),
                 ],
@@ -351,10 +427,7 @@ class _AccountInfoScreenState extends State<AccountInfoScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(
-                color: Color(0xFFFF8C42),
-                width: 2,
-              ),
+              borderSide: const BorderSide(color: Color(0xFFFF8C42), width: 2),
             ),
             disabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),

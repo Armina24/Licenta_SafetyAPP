@@ -107,14 +107,15 @@ class _OpenAIFakeCallScreenState extends State<OpenAIFakeCallScreen> {
       distanceFilter: 5,
     );
 
-    _locationSub = Geolocator.getPositionStream(
-      locationSettings: locationSettings,
-    ).listen((pos) {
-      _lastPosition = LatLng(pos.latitude, pos.longitude);
-      if (_navigating) {
-        _navigationController.onLocationUpdate(_lastPosition!);
-      }
-    });
+    _locationSub =
+        Geolocator.getPositionStream(locationSettings: locationSettings).listen(
+          (pos) {
+            _lastPosition = LatLng(pos.latitude, pos.longitude);
+            if (_navigating) {
+              _navigationController.onLocationUpdate(_lastPosition!);
+            }
+          },
+        );
   }
 
   void _listenNavCues() {
@@ -173,7 +174,8 @@ class _OpenAIFakeCallScreenState extends State<OpenAIFakeCallScreen> {
     });
 
     final dir = await getTemporaryDirectory();
-    final path = '${dir.path}/user_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    final path =
+        '${dir.path}/user_${DateTime.now().millisecondsSinceEpoch}.m4a';
 
     await _recorder.start(
       const RecordConfig(
@@ -236,15 +238,14 @@ class _OpenAIFakeCallScreenState extends State<OpenAIFakeCallScreen> {
       temperature: 0.6,
     );
 
-    final reply = response.choices.first.message.content
-            ?.first
-            .text
-            ?.toString() ??
-        '';
+    final reply =
+        response.choices.first.message.content?.first.text?.toString() ?? '';
     _messages.add(
       OpenAIChatCompletionChoiceMessageModel(
         role: OpenAIChatMessageRole.assistant,
-        content: [OpenAIChatCompletionChoiceMessageContentItemModel.text(reply)],
+        content: [
+          OpenAIChatCompletionChoiceMessageContentItemModel.text(reply),
+        ],
       ),
     );
 
@@ -259,7 +260,8 @@ class _OpenAIFakeCallScreenState extends State<OpenAIFakeCallScreen> {
   Future<bool> _handleNavigationIntent(String text) async {
     final lower = text.toLowerCase();
 
-    if (lower.contains('oprește navigația') || lower.contains('stop navigație')) {
+    if (lower.contains('oprește navigația') ||
+        lower.contains('stop navigație')) {
       _navigationController.stop();
       setState(() {
         _navigating = false;
@@ -375,10 +377,7 @@ class _OpenAIFakeCallScreenState extends State<OpenAIFakeCallScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            Text(
-              _status,
-              style: const TextStyle(color: Colors.white54),
-            ),
+            Text(_status, style: const TextStyle(color: Colors.white54)),
             const Spacer(),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),

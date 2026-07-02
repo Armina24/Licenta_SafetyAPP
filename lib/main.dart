@@ -27,6 +27,9 @@ import 'features/fake_call/active_call_screen.dart';
 import 'features/fake_call/incoming_call_screen.dart';
 import 'features/fake_call/fake_call_scenario.dart';
 import 'features/fake_call_ai/demo_entry.dart';
+import 'alerts_history_page.dart';
+import 'emergency_contacts_view_page.dart';
+import 'forgot_password_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,29 +49,31 @@ void main() async {
       await EmergencyService.instance.sendManualSos();
     },
     onTimerAction: (actionId) async {
-      // Handle timer notification actions
       if (actionId == 'action_timer_stop') {
         await SafetyTimerService.instance.stopTimer();
         debugPrint('🛡️ Timer stopped via notification action');
       } else if (actionId == 'action_timer_add5') {
-        await SafetyTimerService.instance.extendTimer(const Duration(minutes: 5));
+        await SafetyTimerService.instance.extendTimer(
+          const Duration(minutes: 5),
+        );
         debugPrint('⏱️ Timer extended by 5 minutes via notification');
       } else if (actionId == 'action_timer_add15') {
-        await SafetyTimerService.instance.extendTimer(const Duration(minutes: 15));
+        await SafetyTimerService.instance.extendTimer(
+          const Duration(minutes: 15),
+        );
         debugPrint('⏱️ Timer extended by 15 minutes via notification');
       } else if (actionId == 'action_timer_add30') {
-        await SafetyTimerService.instance.extendTimer(const Duration(minutes: 30));
+        await SafetyTimerService.instance.extendTimer(
+          const Duration(minutes: 30),
+        );
         debugPrint('⏱️ Timer extended by 30 minutes via notification');
       }
     },
   );
 
-  await AppBackgroundService.instance.initialize();  //pornim serviciul de background
+  await AppBackgroundService.instance.initialize();
 
-  // Start dedicated background sound monitoring (foreground service)
   await BackgroundSoundService.instance.initialize();
-
-  // Permisiunea SEND_SMS va fi cerută de canalul nativ la nevoie.
 
   final prefs = await SharedPreferences.getInstance();
   final isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
@@ -83,7 +88,9 @@ class MyApp extends StatefulWidget {
 
   const MyApp({super.key, required this.isLoggedIn, required this.isDarkMode});
 
-  static final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
+  static final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(
+    ThemeMode.light,
+  );
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -93,7 +100,9 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    MyApp.themeNotifier.value = widget.isDarkMode ? ThemeMode.dark : ThemeMode.light;
+    MyApp.themeNotifier.value = widget.isDarkMode
+        ? ThemeMode.dark
+        : ThemeMode.light;
     MyApp.themeNotifier.addListener(_onThemeChanged);
   }
 
@@ -138,12 +147,16 @@ class _MyAppState extends State<MyApp> {
         '/soundMonitor': (_) => const SoundMonitorPage(),
         '/safetyTimer': (_) => const SafetyTimerPage(),
         '/recordings': (_) => const RecordingsViewerPage(),
-        '/fake_call_social': (_) => const ActiveCallScreen(scenario: FakeCallScenario.social),
-        '/fake_call_safety': (_) => const ActiveCallScreen(scenario: FakeCallScenario.safety),
+        '/fake_call_social': (_) =>
+            const ActiveCallScreen(scenario: FakeCallScenario.social),
+        '/fake_call_safety': (_) =>
+            const ActiveCallScreen(scenario: FakeCallScenario.safety),
         '/fake_call_ai_demo': (_) => const FakeCallAIDemoEntry(),
+        '/alertsHistory': (_) => const AlertsHistoryPage(),
+        '/emergencyContactsView': (_) => const EmergencyContactsViewPage(),
+        '/forgotPassword': (_) => const ForgotPasswordPage(),
       },
       onGenerateRoute: (settings) {
-        // Handle /incoming_call route with arguments
         if (settings.name == '/incoming_call') {
           final scenario = settings.arguments as FakeCallScenario?;
           if (scenario != null) {

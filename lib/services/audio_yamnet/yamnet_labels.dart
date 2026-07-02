@@ -3,7 +3,6 @@ import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
-
 class YamnetLabels {
   YamnetLabels._(this.indexToLabel, this.categoryToIndices);
 
@@ -12,12 +11,7 @@ class YamnetLabels {
 
   static const _assetPath = 'assets/models/yamnet_class_map.csv';
 
-  static const _tipeteKeywords = [
-    'Scream',
-    'Yell',
-    'Shriek',
-    'Screech',
-  ];
+  static const _tipeteKeywords = ['Scream', 'Yell', 'Shriek', 'Screech'];
 
   static const _aglomeratieKeywords = [
     'Crowd',
@@ -110,5 +104,3 @@ class YamnetLabels {
     return matches;
   }
 }
- 
-

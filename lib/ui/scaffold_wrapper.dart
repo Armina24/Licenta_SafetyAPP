@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 
-/// ScaffoldWrapper applies the deep dark gradient background and wraps Scaffold.
-/// Use this instead of plain Scaffold in dark mode to get the glassmorphism look.
 class ScaffoldWrapper extends StatelessWidget {
   final PreferredSizeWidget? appBar;
   final Widget body;
@@ -32,10 +30,7 @@ class ScaffoldWrapper extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [
-            AppTheme.darkGradientTop,
-            AppTheme.darkGradientBottom,
-          ],
+          colors: [AppTheme.darkGradientTop, AppTheme.darkGradientBottom],
         ),
       ),
       child: Scaffold(

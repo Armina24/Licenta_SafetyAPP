@@ -2,7 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
-const String _envBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+const String _envBaseUrl = String.fromEnvironment(
+  'API_BASE_URL',
+  defaultValue: '',
+);
 
 class ApiClient {
   ApiClient._() : baseUrl = _resolveBaseUrl();
@@ -21,7 +24,7 @@ class ApiClient {
     }
 
     if (Platform.isAndroid) {
-      return 'http://192.168.0.107:4000';
+      return 'http://192.168.1.134:4000';
     }
 
     return 'http://localhost:4000';
@@ -31,9 +34,9 @@ class ApiClient {
     final normalizedPath = path.startsWith('/') ? path : '/$path';
     return Uri.parse(baseUrl).replace(
       path: normalizedPath,
-      queryParameters: queryParameters?.map((key, value) => MapEntry(key, value.toString())),
+      queryParameters: queryParameters?.map(
+        (key, value) => MapEntry(key, value.toString()),
+      ),
     );
   }
 }
-
-

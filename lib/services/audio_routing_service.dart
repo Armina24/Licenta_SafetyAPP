@@ -1,7 +1,6 @@
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
 
-/// Service to handle audio routing (speaker/earpiece)
 class AudioRoutingService {
   static final AudioRoutingService _instance = AudioRoutingService._internal();
 
@@ -13,7 +12,6 @@ class AudioRoutingService {
 
   AudioRoutingService._internal();
 
-  /// Initialize audio session for call mode
   Future<void> initializeCallAudioSession() async {
     try {
       final session = await AudioSession.instance;
@@ -22,7 +20,7 @@ class AudioRoutingService {
           avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
           avAudioSessionCategoryOptions:
               AVAudioSessionCategoryOptions.duckOthers |
-                  AVAudioSessionCategoryOptions.defaultToSpeaker,
+              AVAudioSessionCategoryOptions.defaultToSpeaker,
           androidAudioAttributes: const AndroidAudioAttributes(
             contentType: AndroidAudioContentType.speech,
             flags: AndroidAudioFlags.audibilityEnforced,
@@ -36,7 +34,6 @@ class AudioRoutingService {
     }
   }
 
-  /// Enable speaker output
   Future<void> enableSpeaker() async {
     try {
       final session = await AudioSession.instance;
@@ -48,7 +45,6 @@ class AudioRoutingService {
     }
   }
 
-  /// Disable speaker output (use earpiece)
   Future<void> disableSpeaker() async {
     try {
       final session = await AudioSession.instance;
@@ -60,7 +56,6 @@ class AudioRoutingService {
     }
   }
 
-  /// Toggle speaker on/off
   Future<void> toggleSpeaker() async {
     if (_isSpeakerEnabled) {
       await disableSpeaker();
@@ -69,6 +64,5 @@ class AudioRoutingService {
     }
   }
 
-  /// Check if speaker is enabled
   bool get isSpeakerEnabled => _isSpeakerEnabled;
 }

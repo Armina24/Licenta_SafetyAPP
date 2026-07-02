@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'ui/scaffold_wrapper.dart';
 import 'config/app_theme.dart';
+import 'services/emergency_contacts_service.dart';
+import 'services/user_profile_storage.dart';
 
 class ContactsPage extends StatefulWidget {
   const ContactsPage({super.key});
@@ -15,6 +17,8 @@ class _ContactsPageState extends State<ContactsPage> {
   static const Color _orange = Color(0xFFFF8C42);
 
   List<Map<String, String>> _contacts = [];
+  final EmergencyContactsService _contactsService =
+      EmergencyContactsService.instance;
 
   @override
   void initState() {
@@ -24,51 +28,119 @@ class _ContactsPageState extends State<ContactsPage> {
 
   Future<void> _loadContacts() async {
     final prefs = await SharedPreferences.getInstance();
-    final contactsJson = prefs.getString('emergency_contacts_list');
-    
+
+    String? contactsJson = UserProfileStorage.getString(
+      prefs,
+      'emergency_contacts_list',
+    );
+
+    if (contactsJson == null) {
+      final legacyJson = prefs.getString('emergency_contacts_list');
+      if (legacyJson != null && legacyJson.isNotEmpty) {
+        contactsJson = legacyJson;
+
+        await UserProfileStorage.setString(
+          prefs,
+          'emergency_contacts_list',
+          legacyJson,
+        );
+      }
+    }
+
     if (contactsJson != null && contactsJson.isNotEmpty) {
-      // Parse JSON string to list
-      final List<dynamic> parsed = 
-          contactsJson.split('|').map((item) {
+      final List<dynamic> parsed = contactsJson
+          .split('|')
+          .map((item) {
             final parts = item.split('::');
             if (parts.length == 2) {
               return {'name': parts[0], 'phone': parts[1]};
             }
             return null;
-          }).where((item) => item != null).toList();
-      
+          })
+          .where((item) => item != null)
+          .toList();
+
       setState(() {
         _contacts = List<Map<String, String>>.from(parsed);
       });
     } else {
-      // Fallback to old format (just phone numbers)
       final csv = prefs.getString('emergency_contacts') ?? '';
-      final phones = csv.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
-      setState(() {
-        _contacts = phones.map((phone) => {'name': 'Contact', 'phone': phone}).toList();
-      });
+      final phones = csv
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+
+      if (phones.isNotEmpty) {
+        final contacts = phones
+            .map((phone) => {'name': 'Contact', 'phone': phone})
+            .toList();
+        setState(() {
+          _contacts = List<Map<String, String>>.from(contacts);
+        });
+
+        final promoted = contacts
+            .map((c) => '${c['name']}::${c['phone']}')
+            .join('|');
+        await UserProfileStorage.setString(
+          prefs,
+          'emergency_contacts_list',
+          promoted,
+        );
+      } else {
+        setState(() {
+          _contacts = [];
+        });
+      }
     }
   }
 
   Future<void> _saveContacts() async {
     final prefs = await SharedPreferences.getInstance();
-    // Save as JSON-like string format: "name::phone|name::phone"
+
     final contactsJson = _contacts
         .map((c) => '${c['name']}::${c['phone']}')
         .join('|');
-    await prefs.setString('emergency_contacts_list', contactsJson);
-    
-    // Also save phone numbers in old format for compatibility
+
+    await UserProfileStorage.setString(
+      prefs,
+      'emergency_contacts_list',
+      contactsJson,
+    );
+
     final phones = _contacts.map((c) => c['phone']!).join(',');
     await prefs.setString('emergency_contacts', phones);
+
+    _syncContactsToServer();
+  }
+
+  Future<void> _syncContactsToServer() async {
+    try {
+      final serverContacts = await _contactsService.fetchContacts();
+
+      for (final contact in _contacts) {
+        final exists = serverContacts.any(
+          (sc) => sc['phoneNumber'] == contact['phone'],
+        );
+
+        if (!exists) {
+          await _contactsService.addContact(
+            name: contact['name'] ?? 'Contact',
+            phoneNumber: contact['phone'] ?? '',
+          );
+        }
+      }
+
+      debugPrint('✓ Contactele au fost sincronizate cu serverul');
+    } catch (e) {
+      debugPrint('⚠️ Eroare la sincronizarea contactelor: $e');
+    }
   }
 
   Future<void> _addContact() async {
     final result = await Navigator.push<Map<String, String>>(
       context,
-      MaterialPageRoute(
-        builder: (context) => const AddContactPage(),
-      ),
+      MaterialPageRoute(builder: (context) => const AddContactPage()),
     );
 
     if (result != null) {
@@ -104,7 +176,9 @@ class _ContactsPageState extends State<ContactsPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Contact'),
-        content: Text('Are you sure you want to delete ${_contacts[index]['name']}?'),
+        content: Text(
+          'Are you sure you want to delete ${_contacts[index]['name']}?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -130,18 +204,21 @@ class _ContactsPageState extends State<ContactsPage> {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDarkMode ? Colors.transparent : _bgColor;
-    final titleColor = isDarkMode ? AppTheme.textPrimary : const Color(0xFF1F1F1F);
-    final secondaryText = isDarkMode ? AppTheme.textSecondary : Colors.grey.withValues(alpha: 0.7);
-    final subtleText = isDarkMode ? AppTheme.textTertiary : Colors.grey.withValues(alpha: 0.6);
+    final titleColor = isDarkMode
+        ? AppTheme.textPrimary
+        : const Color(0xFF1F1F1F);
+    final secondaryText = isDarkMode
+        ? AppTheme.textSecondary
+        : Colors.grey.withValues(alpha: 0.7);
+    final subtleText = isDarkMode
+        ? AppTheme.textTertiary
+        : Colors.grey.withValues(alpha: 0.6);
 
     final appBar = AppBar(
       backgroundColor: isDarkMode ? Colors.transparent : _bgColor,
       elevation: 0,
       iconTheme: IconThemeData(color: titleColor),
-      title: Text(
-        'Emergency Contacts',
-        style: TextStyle(color: titleColor),
-      ),
+      title: Text('Emergency Contacts', style: TextStyle(color: titleColor)),
       centerTitle: true,
     );
 
@@ -161,19 +238,13 @@ class _ContactsPageState extends State<ContactsPage> {
                   const SizedBox(height: 16),
                   Text(
                     'No emergency contacts',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: secondaryText,
-                    ),
+                    style: TextStyle(fontSize: 18, color: secondaryText),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Add trusted contacts to receive\nSOS alerts',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: subtleText,
-                    ),
+                    style: TextStyle(fontSize: 14, color: subtleText),
                   ),
                 ],
               ),
@@ -197,7 +268,9 @@ class _ContactsPageState extends State<ContactsPage> {
                   color: isDarkMode ? AppTheme.glassDarkMedium : Colors.white,
                   child: ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: AppTheme.accentOrange.withValues(alpha: 0.2),
+                      backgroundColor: AppTheme.accentOrange.withValues(
+                        alpha: 0.2,
+                      ),
                       child: Text(
                         contact['name']![0].toUpperCase(),
                         style: const TextStyle(
@@ -216,10 +289,7 @@ class _ContactsPageState extends State<ContactsPage> {
                     ),
                     subtitle: Text(
                       contact['phone']!,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: secondaryText,
-                      ),
+                      style: TextStyle(fontSize: 14, color: secondaryText),
                     ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -281,11 +351,7 @@ class AddContactPage extends StatefulWidget {
   final String? initialName;
   final String? initialPhone;
 
-  const AddContactPage({
-    super.key,
-    this.initialName,
-    this.initialPhone,
-  });
+  const AddContactPage({super.key, this.initialName, this.initialPhone});
 
   @override
   State<AddContactPage> createState() => _AddContactPageState();
@@ -347,10 +413,7 @@ class _AddContactPageState extends State<AddContactPage> {
               children: [
                 const Text(
                   'Contact Information',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 24),
                 TextFormField(
@@ -386,8 +449,11 @@ class _AddContactPageState extends State<AddContactPage> {
                     if (value == null || value.trim().isEmpty) {
                       return 'Please enter a phone number';
                     }
-                    // Basic phone validation
-                    final phone = value.trim().replaceAll(RegExp(r'[^\d+]'), '');
+
+                    final phone = value.trim().replaceAll(
+                      RegExp(r'[^\d+]'),
+                      '',
+                    );
                     if (phone.length < 8) {
                       return 'Please enter a valid phone number';
                     }
@@ -418,4 +484,3 @@ class _AddContactPageState extends State<AddContactPage> {
     );
   }
 }
-

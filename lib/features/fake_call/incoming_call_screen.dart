@@ -6,21 +6,17 @@ import 'fake_call_scenario.dart';
 import 'openai_fake_call_screen.dart';
 import '../../services/ringer_mode_service.dart';
 
-/// Incoming call screen that mimics native iOS/Android incoming call UI
 class IncomingCallScreen extends StatefulWidget {
   final FakeCallScenario scenario;
 
-  const IncomingCallScreen({
-    super.key,
-    required this.scenario,
-  });
+  const IncomingCallScreen({super.key, required this.scenario});
 
   @override
   State<IncomingCallScreen> createState() => _IncomingCallScreenState();
 }
 
 class _IncomingCallScreenState extends State<IncomingCallScreen>
-  with TickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
   late AnimationController _slideController;
@@ -39,29 +35,26 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
   }
 
   void _initializeScreenAnimations() {
-    // Pulse animation for avatar
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
 
     _pulseAnimation = Tween<double>(begin: 0.95, end: 1.1).animate(
-      CurvedAnimation(
-        parent: _pulseController,
-        curve: Curves.easeInOut,
-      ),
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
     _pulseController.repeat(reverse: true);
 
-    // Slide animation for decline/accept buttons
     _slideController = AnimationController(
       duration: const Duration(milliseconds: 500),
       vsync: this,
     );
 
-    _slideAnimation = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOut));
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOut));
 
     _slideController.forward();
   }
@@ -70,17 +63,14 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     try {
       _ringerMode = await RingerModeService.getRingerMode();
 
-      // Initialize audio player for ringtone
       await _audioPlayer.setReleaseMode(ReleaseMode.loop);
-      
-      // Play based on ringer mode
+
       if (_ringerMode == RingerMode.normal) {
         await _audioPlayer.play(AssetSource('sounds/ringtone.mp3'));
         _startVibrationPattern();
       } else if (_ringerMode == RingerMode.vibrate) {
         _startVibrationPattern();
       }
-      // If silent, do nothing
 
       setState(() {});
     } catch (e) {
@@ -89,8 +79,9 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
   }
 
   void _startVibrationPattern() {
-    // Pattern: 1s wait, 0.5s vibrate, 0.5s pause, repeat
-    _vibrationTimer = Timer.periodic(const Duration(milliseconds: 2000), (timer) {
+    _vibrationTimer = Timer.periodic(const Duration(milliseconds: 2000), (
+      timer,
+    ) {
       Future.delayed(const Duration(seconds: 1), () {
         Vibration.vibrate(duration: 500);
       });
@@ -101,22 +92,17 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     if (_isAnswering) return;
     _isAnswering = true;
 
-    // Stop ringtone and vibration
     await _audioPlayer.stop();
     _vibrationTimer?.cancel();
     _pulseController.stop();
 
-    // Brief haptic feedback
     await Vibration.vibrate(duration: 100);
 
     if (!mounted) return;
 
-    // Navigate to OpenAI fake call screen
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (context) => OpenAIFakeCallScreen(
-          scenario: widget.scenario,
-        ),
+        builder: (context) => OpenAIFakeCallScreen(scenario: widget.scenario),
       ),
     );
   }
@@ -129,7 +115,9 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
   }
 
   String _getCallerName() {
-    return widget.scenario == FakeCallScenario.social ? 'Tata' : 'Emergency Services';
+    return widget.scenario == FakeCallScenario.social
+        ? 'Tata'
+        : 'Emergency Services';
   }
 
   String _getCallerSubtitle() {
@@ -182,16 +170,11 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
           ),
           child: Stack(
             children: [
-              // Blurred background effect
-              Container(
-                color: Colors.black.withValues(alpha: 0.1),
-              ),
+              Container(color: Colors.black.withValues(alpha: 0.1)),
 
-              // Main content
               SafeArea(
                 child: Column(
                   children: [
-                    // Top status bar
                     Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Text(
@@ -206,7 +189,6 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
                     const Spacer(),
 
-                    // Caller avatar with pulse animation
                     AnimatedBuilder(
                       animation: _pulseAnimation,
                       builder: (context, child) {
@@ -238,7 +220,6 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
                     const SizedBox(height: 40),
 
-                    // Caller name
                     Text(
                       _getCallerName(),
                       textAlign: TextAlign.center,
@@ -252,7 +233,6 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
                     const SizedBox(height: 12),
 
-                    // Caller subtitle
                     Text(
                       _getCallerSubtitle(),
                       textAlign: TextAlign.center,
@@ -264,7 +244,6 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
                     const Spacer(),
 
-                    // Action buttons with slide animation
                     SlideTransition(
                       position: _slideAnimation,
                       child: Padding(
@@ -274,7 +253,6 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                         ),
                         child: Column(
                           children: [
-                            // Swipe hint
                             Text(
                               'Slide or tap to answer',
                               style: TextStyle(
@@ -284,11 +262,9 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                             ),
                             const SizedBox(height: 24),
 
-                            // Accept/Decline buttons
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
-                                // Decline button
                                 _IncomingCallButton(
                                   icon: Icons.call_end,
                                   color: Colors.red,
@@ -296,7 +272,6 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                                   onPressed: _declineCall,
                                 ),
 
-                                // Accept button
                                 _IncomingCallButton(
                                   icon: Icons.call,
                                   color: Colors.green,
@@ -318,10 +293,8 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
       ),
     );
   }
-
 }
 
-/// Custom button widget for accept/decline actions
 class _IncomingCallButton extends StatelessWidget {
   final IconData icon;
   final Color color;
@@ -348,11 +321,7 @@ class _IncomingCallButton extends StatelessWidget {
             elevation: 12,
             child: Container(
               padding: const EdgeInsets.all(24),
-              child: Icon(
-                icon,
-                size: 32,
-                color: Colors.white,
-              ),
+              child: Icon(icon, size: 32, color: Colors.white),
             ),
           ),
           const SizedBox(height: 12),

@@ -3,6 +3,8 @@ import cors from 'cors';
 import morgan from 'morgan';
 import { config, assertRequiredEnv } from './config.js';
 import authRouter from './routes/auth.js';
+import locationShareRouter from './routes/location_shares.js';
+import profileRouter from './routes/profile.js';
 import { ensureTables, query } from './db.js';
 
 assertRequiredEnv();
@@ -22,6 +24,8 @@ app.get('/health', async (req, res) => {
 });
 
 app.use('/auth', authRouter);
+app.use('/api', profileRouter);
+app.use('/', locationShareRouter);
 
 ensureTables()
   .then(() => {
@@ -33,5 +37,3 @@ ensureTables()
     console.error('Failed to initialize database tables:', err);
     process.exit(1);
   });
-
-

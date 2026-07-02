@@ -76,8 +76,9 @@ class YamnetService {
       inputBuffer[i] = audioSamples[i];
     }
 
-    final Object modelInput =
-        _inputShape.length == 1 ? inputBuffer : [inputBuffer];
+    final Object modelInput = _inputShape.length == 1
+        ? inputBuffer
+        : [inputBuffer];
 
     final int numClasses = _outputShape.isEmpty ? 521 : _outputShape.last;
     final List<List<double>> modelOutput = [
@@ -137,11 +138,7 @@ class YamnetService {
   Map<String, double> _aggregateCategoryScores(List<double> scores) {
     final labels = _labels;
     if (labels == null) {
-      return const {
-        'tipete': 0.0,
-        'aglomeratie': 0.0,
-        'spargere': 0.0,
-      };
+      return const {'tipete': 0.0, 'aglomeratie': 0.0, 'spargere': 0.0};
     }
 
     final Map<String, double> categoryScores = {};
@@ -157,5 +154,3 @@ class YamnetService {
     return categoryScores;
   }
 }
- 
-

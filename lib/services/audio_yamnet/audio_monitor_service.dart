@@ -5,7 +5,6 @@ import 'package:permission_handler/permission_handler.dart';
 
 import 'yamnet_service.dart';
 
-/// Rezultat pe care îl primește UI-ul la fiecare "alertă".
 class SoundAlertResult {
   final double tipete;
   final double aglomeratie;
@@ -42,18 +41,18 @@ class AudioMonitorService {
 
   bool _audioInitialized = false;
 
-  // buffer de sample-uri pentru YAMNet
   final List<double> _sampleBuffer = [];
 
-  // callback-ul pe care îl dăm din UI
   void Function(SoundAlertResult)? _onAlert;
 
-  // praguri (poți să le ajustezi ulterior)
-  static const double _thrScream = 0.6;
-  static const double _thrCrowd = 0.6;
-  static const double _thrGlass = 0.7;
+  static const double _thrScream = 0.30;
+  static const double _thrCrowd = 0.30;
+  static const double _thrGlass = 0.25;
 
-  // câte ferestre consecutive trebuie să fie peste prag
+  static const double _thrScreamImmediate = 0.75;
+  static const double _thrCrowdImmediate = 0.75;
+  static const double _thrGlassImmediate = 0.70;
+
   static const int _screamWindows = 3;
   static const int _crowdWindows = 3;
   static const int _glassWindows = 1;
@@ -62,27 +61,27 @@ class AudioMonitorService {
   int _crowdCounter = 0;
   int _glassCounter = 0;
 
-  // dimensiunea așteptată de YAMNet (din testele tale: 15600)
   static const int _frameSamples = 15600;
 
   Future<void> startMonitoring({
     required void Function(SoundAlertResult) onAlert,
   }) async {
-    debugPrint('🎙 AudioMonitorService.startMonitoring() chemat (isMonitoring=$_isMonitoring)');
+    debugPrint(
+      '🎙 AudioMonitorService.startMonitoring() chemat (isMonitoring=$_isMonitoring)',
+    );
     if (_isMonitoring) return;
 
-    // 1. permisiune microfon
     final status = await Permission.microphone.status;
     if (!status.isGranted) {
-      debugPrint('AudioMonitorService: microfon NEpermis.'
-        'Cere permisiunea din UI înainte de a porni monitorizarea.',);
+      debugPrint(
+        'AudioMonitorService: microfon NEpermis.'
+        'Cere permisiunea din UI înainte de a porni monitorizarea.',
+      );
       return;
     }
 
-    // 2. init YAMNet (dacă nu e deja)
     await YamnetService.instance.init();
 
-    // 3. init pluginul audio o singură dată
     if (!_audioInitialized) {
       await _plugin.init();
       _audioInitialized = true;
@@ -97,8 +96,8 @@ class AudioMonitorService {
     await _plugin.start(
       _audioListener,
       _onError,
-      sampleRate: 16000, // exact cât vrea YAMNet
-      bufferSize: 3000,  // doar pentru iOS, la Android e ignorat
+      sampleRate: 16000,
+      bufferSize: 3000,
     );
   }
 
@@ -115,19 +114,15 @@ class AudioMonitorService {
     debugPrint('AudioMonitorService: STOP.');
   }
 
-  /// Listener-ul chemat de flutter_audio_capture pentru fiecare chunk.
   void _audioListener(dynamic obj) async {
     if (!_isMonitoring) return;
 
-    // pluginul trimite Float64List dynamic → îl convertim
     final Float64List buffer = Float64List.fromList(obj.cast<double>());
 
-    // adăugăm în bufferul mare
     for (final v in buffer) {
       _sampleBuffer.add(v.toDouble());
     }
 
-    // cât timp avem destule sample-uri pentru o fereastră YAMNet
     while (_sampleBuffer.length >= _frameSamples) {
       final frame = _sampleBuffer.sublist(0, _frameSamples);
       _sampleBuffer.removeRange(0, _frameSamples);
@@ -140,7 +135,6 @@ class AudioMonitorService {
     debugPrint('AudioMonitorService: eroare din flutter_audio_capture: $e');
   }
 
-  /// Rulează YAMNet pe o fereastră și verifică pragurile.
   Future<void> _analyzeFrame(List<double> frame) async {
     final scores = await YamnetService.instance.classify(frame);
 
@@ -148,7 +142,6 @@ class AudioMonitorService {
     final double sCrowd = scores['aglomeratie'] ?? 0.0;
     final double sGlass = scores['spargere'] ?? 0.0;
 
-    // update contoare
     if (sScream > _thrScream) {
       _screamCounter++;
     } else {
@@ -167,9 +160,12 @@ class AudioMonitorService {
       _glassCounter = 0;
     }
 
-    final bool isScream = _screamCounter >= _screamWindows;
-    final bool isCrowd = _crowdCounter >= _crowdWindows;
-    final bool isGlass = _glassCounter >= _glassWindows;
+    final bool isScream =
+        _screamCounter >= _screamWindows || sScream >= _thrScreamImmediate;
+    final bool isCrowd =
+        _crowdCounter >= _crowdWindows || sCrowd >= _thrCrowdImmediate;
+    final bool isGlass =
+        _glassCounter >= _glassWindows || sGlass >= _thrGlassImmediate;
 
     final result = SoundAlertResult(
       tipete: sScream,
@@ -180,7 +176,6 @@ class AudioMonitorService {
       isGlass: isGlass,
     );
 
-    // pur debug, poți comenta dacă e spam:
     debugPrint('AudioMonitorService frame -> $result');
 
     if ((isScream || isCrowd || isGlass) && _onAlert != null) {
