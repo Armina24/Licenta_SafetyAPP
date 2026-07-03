@@ -17,7 +17,7 @@ Link către repository: https://github.com/Armina24/Licenta_SafetyAPP
 Acest proiect este format din două componente principale:
 
 * **Backend** (server): Server backend realizat în Node.js cu Express.js și PostgreSQL pentru autentificare, gestionarea profilurilor, sincronizarea contactelor de urgență și stocarea istoricului de alerte.
-* **Frontend** (aplicația propriu-zisă): Aplicație mobilă cross-platform realizată în Flutter (Dart) pentru dispozitive Android și iOS.
+* **Frontend** (aplicația propriu-zisă): Aplicație mobilă realizată în Flutter (Dart) pentru dispozitive Android în principal.
 
 ---
 
