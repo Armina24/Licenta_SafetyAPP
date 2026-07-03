@@ -275,7 +275,7 @@ class AlertManager {
       actions: <AndroidNotificationAction>[
         const AndroidNotificationAction(
           _actionTimerStopId,
-          '⏹ Stop',
+          'Stop',
           showsUserInterface: true,
           cancelNotification: false,
         ),
@@ -304,7 +304,7 @@ class AlertManager {
 
     await _notifications.show(
       _timerWarningNotificationId,
-      '⏱️ Safety Timer Warning',
+      'Safety Timer Warning',
       timerText,
       details,
       payload: _payloadTimerWarning,
@@ -338,7 +338,7 @@ class AlertManager {
       actions: <AndroidNotificationAction>[
         const AndroidNotificationAction(
           _actionTimerStopId,
-          '⏹ Stop',
+          'Stop',
           showsUserInterface: true,
           cancelNotification: false,
         ),
@@ -367,7 +367,7 @@ class AlertManager {
 
     await _notifications.show(
       _timerWarningNotificationId,
-      '⏱️ Safety Timer Warning',
+      'Safety Timer Warning',
       timerText,
       details,
       payload: _payloadTimerWarning,

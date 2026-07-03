@@ -169,7 +169,7 @@ class _HomePageState extends State<HomePage> {
       if (mounted && _isSoundMonitoringActive) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('🎙️ Sound Monitoring Enabled'),
+            content: Text('Sound Monitoring Enabled'),
             duration: Duration(seconds: 2),
           ),
         );
@@ -365,7 +365,7 @@ class _HomePageState extends State<HomePage> {
   void _onDangerousShakeDetected(ShakeDangerType dangerType) {
     if (!mounted) return;
 
-    debugPrint('🚨 DANGEROUS SHAKE DETECTED: $dangerType');
+    debugPrint('DANGEROUS SHAKE DETECTED: $dangerType');
 
     AlertManager.instance.triggerPreAlarm(
       source: 'Shake detected ($dangerType)',
@@ -439,7 +439,7 @@ class _HomePageState extends State<HomePage> {
         message: result.userMessage,
       );
     } catch (e) {
-      debugPrint('⚠️ Eroare la salvarea alertei: $e');
+      debugPrint('Eroare la salvarea alertei: $e');
     }
   }
 

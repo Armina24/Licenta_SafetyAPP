@@ -19,7 +19,7 @@ export async function sendPasswordResetEmail(to, code) {
   const transporter = createTransporter();
 
   if (!transporter) {
-    console.log(`\n📧  [DEV – email not configured]`);
+    console.log(`\n[DEV – email not configured]`);
     console.log(`    To:   ${to}`);
     console.log(`    Code: ${code}\n`);
     return;
@@ -27,7 +27,7 @@ export async function sendPasswordResetEmail(to, code) {
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #FFF8F2; border-radius: 16px;">
-      <h2 style="color: #FF8C42; margin-bottom: 8px;">🔐 Resetare parolă</h2>
+      <h2 style="color: #FF8C42; margin-bottom: 8px;">Resetare parolă</h2>
       <p style="color: #444; font-size: 16px;">
         Codul tău de verificare este:
       </p>

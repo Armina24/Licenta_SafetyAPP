@@ -67,7 +67,7 @@ class AudioMonitorService {
     required void Function(SoundAlertResult) onAlert,
   }) async {
     debugPrint(
-      '🎙 AudioMonitorService.startMonitoring() chemat (isMonitoring=$_isMonitoring)',
+      'AudioMonitorService.startMonitoring() chemat (isMonitoring=$_isMonitoring)',
     );
     if (_isMonitoring) return;
 

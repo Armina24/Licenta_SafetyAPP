@@ -104,7 +104,7 @@ class SafetyTimerService {
     );
 
     debugPrint(
-      '🛡️ Safety Timer started: $_timerEndTime (duration: ${duration.inMinutes}m)',
+      'Safety Timer started: $_timerEndTime (duration: ${duration.inMinutes}m)',
     );
     _onTimerEvent?.call(SafetyTimerEvent.timerStarted);
 
@@ -139,7 +139,7 @@ class SafetyTimerService {
       _timerTotalMinutes ?? 0,
     );
 
-    debugPrint('⏱️ Safety Timer extended to: $_timerEndTime');
+    debugPrint('Safety Timer extended to: $_timerEndTime');
     _onTimerEvent?.call(SafetyTimerEvent.timerExtended);
 
     _notifyStateChange();
@@ -162,7 +162,7 @@ class SafetyTimerService {
     await UserProfileStorage.remove(prefs, _keyCheckInNotified);
     await UserProfileStorage.remove(prefs, _keyTimerTotalMinutes);
 
-    debugPrint('✅ Safety Timer stopped');
+    debugPrint('Safety Timer stopped');
     _onTimerEvent?.call(SafetyTimerEvent.timerStopped);
 
     _stateNotifier.value = null;
@@ -222,7 +222,7 @@ class SafetyTimerService {
   }
 
   Future<void> _triggerSos() async {
-    debugPrint('🚨 Safety Timer EXPIRED - Triggering SOS!');
+    debugPrint('Safety Timer EXPIRED - Triggering SOS!');
 
     _isActive = false;
     _timerEndTime = null;

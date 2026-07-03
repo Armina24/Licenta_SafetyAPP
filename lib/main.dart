@@ -51,22 +51,22 @@ void main() async {
     onTimerAction: (actionId) async {
       if (actionId == 'action_timer_stop') {
         await SafetyTimerService.instance.stopTimer();
-        debugPrint('🛡️ Timer stopped via notification action');
+        debugPrint('Timer stopped via notification action');
       } else if (actionId == 'action_timer_add5') {
         await SafetyTimerService.instance.extendTimer(
           const Duration(minutes: 5),
         );
-        debugPrint('⏱️ Timer extended by 5 minutes via notification');
+        debugPrint('Timer extended by 5 minutes via notification');
       } else if (actionId == 'action_timer_add15') {
         await SafetyTimerService.instance.extendTimer(
           const Duration(minutes: 15),
         );
-        debugPrint('⏱️ Timer extended by 15 minutes via notification');
+        debugPrint('Timer extended by 15 minutes via notification');
       } else if (actionId == 'action_timer_add30') {
         await SafetyTimerService.instance.extendTimer(
           const Duration(minutes: 30),
         );
-        debugPrint('⏱️ Timer extended by 30 minutes via notification');
+        debugPrint('Timer extended by 30 minutes via notification');
       }
     },
   );

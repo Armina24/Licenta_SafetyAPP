@@ -131,9 +131,9 @@ class _ContactsPageState extends State<ContactsPage> {
         }
       }
 
-      debugPrint('✓ Contactele au fost sincronizate cu serverul');
+      debugPrint('Contactele au fost sincronizate cu serverul');
     } catch (e) {
-      debugPrint('⚠️ Eroare la sincronizarea contactelor: $e');
+      debugPrint('Eroare la sincronizarea contactelor: $e');
     }
   }
 

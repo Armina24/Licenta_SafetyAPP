@@ -256,7 +256,7 @@ class _ShareMethodSheet extends StatelessWidget {
           message: message,
         );
       } catch (e) {
-        debugPrint('⚠️ Eroare la salvarea alertei: $e');
+        debugPrint('Eroare la salvarea alertei: $e');
       }
     } catch (e) {
       if (context.mounted) {

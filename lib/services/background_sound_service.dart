@@ -22,13 +22,13 @@ class BackgroundSoundService {
 
     if (!micGranted) {
       debugPrint(
-        '❌ Microphone permission not granted; background sound disabled.',
+        'Microphone permission not granted; background sound disabled.',
       );
       return;
     }
     if (!notifGranted) {
       debugPrint(
-        '❌ Notification permission not granted; cannot start foreground service.',
+        'Notification permission not granted; cannot start foreground service.',
       );
       return;
     }
@@ -54,7 +54,7 @@ class BackgroundSoundService {
 
     await service.startService();
     debugPrint(
-      '✅ BackgroundSoundService started as Android foreground service.',
+      'BackgroundSoundService started as Android foreground service.',
     );
   }
 
@@ -67,7 +67,7 @@ class BackgroundSoundService {
       service.invoke('stopService');
       await Future.delayed(const Duration(milliseconds: 500));
     } catch (_) {}
-    debugPrint('🛑 BackgroundSoundService stop requested.');
+    debugPrint('BackgroundSoundService stop requested.');
   }
 
   Future<bool> _ensureMicrophonePermission() async {
@@ -95,28 +95,28 @@ Future<void> _onStart(ServiceInstance service) async {
 
   DartPluginRegistrant.ensureInitialized();
   debugPrint(
-    '🎧 Background sound service isolate started with YAMNet detection.',
+    'Background sound service isolate started with YAMNet detection.',
   );
 
   try {
     await WakelockPlus.enable();
-    debugPrint('🔥 [BG] WakeLock activat! CPU-ul nu va intra in sleep.');
+    debugPrint('[BG] WakeLock activat! CPU-ul nu va intra in sleep.');
   } catch (e) {
-    debugPrint('❌ [BG] Nu am putut activa WakeLock: $e');
+    debugPrint('[BG] Nu am putut activa WakeLock: $e');
   }
 
   bool audioMonitoring = false;
 
-  debugPrint('🔧 [BG] Initializing YAMNet model in isolate...');
+  debugPrint('[BG] Initializing YAMNet model in isolate...');
   try {
     await YamnetService.instance.init();
-    debugPrint('✅ [BG] YAMNet model initialized successfully');
+    debugPrint('[BG] YAMNet model initialized successfully');
   } catch (e) {
-    debugPrint('❌ [BG] Failed to initialize YAMNet: $e');
+    debugPrint('[BG] Failed to initialize YAMNet: $e');
   }
 
   service.on('startAudio').listen((event) async {
-    debugPrint('🟢 [BG] startAudio: beginning sound detection with YAMNet');
+    debugPrint('[BG] startAudio: beginning sound detection with YAMNet');
     if (audioMonitoring) return;
 
     audioMonitoring = true;
@@ -125,7 +125,7 @@ Future<void> _onStart(ServiceInstance service) async {
       await AudioMonitorService.instance.startMonitoring(
         onAlert: (result) {
           debugPrint(
-            '🎧 [BG] Sound detected: Tipete=${result.tipete.toStringAsFixed(4)}, '
+            '[BG] Sound detected: Tipete=${result.tipete.toStringAsFixed(4)}, '
             'Aglomerație=${result.aglomeratie.toStringAsFixed(4)}, '
             'Spargere=${result.spargere.toStringAsFixed(4)}',
           );
@@ -141,22 +141,22 @@ Future<void> _onStart(ServiceInstance service) async {
           }
         },
       );
-      debugPrint('✅ [BG] Audio monitoring started');
+      debugPrint('[BG] Audio monitoring started');
     } catch (e) {
-      debugPrint('❌ [BG] Error starting audio monitoring: $e');
+      debugPrint('[BG] Error starting audio monitoring: $e');
       audioMonitoring = false;
     }
   });
 
   service.on('stopAudio').listen((event) async {
-    debugPrint('🛑 [BG] stopAudio: stopping sound detection');
+    debugPrint('[BG] stopAudio: stopping sound detection');
     if (!audioMonitoring) return;
     audioMonitoring = false;
     try {
       await AudioMonitorService.instance.stopMonitoring();
-      debugPrint('✅ [BG] Audio monitoring stopped');
+      debugPrint('[BG] Audio monitoring stopped');
     } catch (e) {
-      debugPrint('❌ [BG] Error stopping audio monitoring: $e');
+      debugPrint('[BG] Error stopping audio monitoring: $e');
     }
 
     if (service is AndroidServiceInstance) {
@@ -179,7 +179,7 @@ Future<void> _onStart(ServiceInstance service) async {
   });
 
   service.on('stopService').listen((event) async {
-    debugPrint('🛑 Background sound service stopped');
+    debugPrint('Background sound service stopped');
     if (audioMonitoring) {
       try {
         AudioMonitorService.instance.stopMonitoring();
@@ -187,9 +187,9 @@ Future<void> _onStart(ServiceInstance service) async {
     }
     try {
       await WakelockPlus.disable();
-      debugPrint('🔥 [BG] WakeLock dezactivat. CPU-ul poate intra in sleep.');
+      debugPrint('[BG] WakeLock dezactivat. CPU-ul poate intra in sleep.');
     } catch (e) {
-      debugPrint('❌ [BG] Nu am putut dezactiva WakeLock: $e');
+      debugPrint('[BG] Nu am putut dezactiva WakeLock: $e');
     }
     service.stopSelf();
   });

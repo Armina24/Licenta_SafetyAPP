@@ -130,7 +130,7 @@ class AudioThreatDetectionService {
     _currentPreAlarm?.cancel();
 
     debugPrint(
-      '🚨 [AUDIO THREAT] ${threatEvent.threatType} detected at ${threatEvent.confidenceScore.toStringAsFixed(2)}% confidence',
+      '[AUDIO THREAT] ${threatEvent.threatType} detected at ${threatEvent.confidenceScore.toStringAsFixed(2)}% confidence',
     );
 
     await _triggerHapticFeedback();
@@ -155,7 +155,7 @@ class AudioThreatDetectionService {
     try {
       final hasVibrator = await Vibration.hasVibrator();
       if (hasVibrator != true) {
-        debugPrint('⚠️ Device does not support vibration');
+        debugPrint('Device does not support vibration');
         return;
       }
 
@@ -170,14 +170,14 @@ class AudioThreatDetectionService {
         Vibration.vibrate(duration: _hapticDurationMs);
       }
     } catch (e) {
-      debugPrint('⚠️ Haptic feedback error: $e');
+      debugPrint('Haptic feedback error: $e');
     }
   }
 
   void handleFalseAlarm(String reason) {
     if (_currentPreAlarm == null) return;
 
-    debugPrint('✓ [AUDIO] User dismissed threat as false alarm: $reason');
+    debugPrint('[AUDIO] User dismissed threat as false alarm: $reason');
     _currentPreAlarm!.cancel();
     _onPreAlarmCancelled?.call(_currentPreAlarm!.threatEvent, reason);
     _currentPreAlarm = null;
@@ -186,7 +186,7 @@ class AudioThreatDetectionService {
   void handleHelpNow() {
     if (_currentPreAlarm == null) return;
 
-    debugPrint('🚨 [AUDIO] User requested immediate help');
+    debugPrint('[AUDIO] User requested immediate help');
     _currentPreAlarm!.executeNow();
     _currentPreAlarm = null;
   }

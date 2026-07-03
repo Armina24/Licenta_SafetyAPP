@@ -75,7 +75,7 @@ class _SoundMonitorPageState extends State<SoundMonitorPage> {
 
   void _onThreatDetected(ThreatDetectionEvent event) {
     debugPrint(
-      '🚨 Threat detected: ${event.threatType} @ ${event.confidenceScore.toStringAsFixed(2)}',
+      'Threat detected: ${event.threatType} @ ${event.confidenceScore.toStringAsFixed(2)}',
     );
     setState(() {
       _lastEvent =
@@ -84,7 +84,7 @@ class _SoundMonitorPageState extends State<SoundMonitorPage> {
   }
 
   void _onPreAlarmConfirmed(ThreatDetectionEvent event) {
-    debugPrint('✓ Pre-alarm confirmed - executing SOS');
+    debugPrint('Pre-alarm confirmed - executing SOS');
     setState(() {
       _lastEvent = 'SOS TRIMIS pentru ${event.threatType}!';
     });
@@ -100,7 +100,7 @@ class _SoundMonitorPageState extends State<SoundMonitorPage> {
   }
 
   void _onPreAlarmCancelled(ThreatDetectionEvent event, String reason) {
-    debugPrint('✓ Pre-alarm cancelled: $reason');
+    debugPrint('Pre-alarm cancelled: $reason');
     setState(() {
       _lastEvent = 'Alertă anulată: $reason';
     });

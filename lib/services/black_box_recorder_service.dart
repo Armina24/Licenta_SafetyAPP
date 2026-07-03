@@ -138,7 +138,7 @@ class BlackBoxRecorderService {
     final rearAvailable = _rearCamera != null;
 
     if (!frontAvailable && !rearAvailable) {
-      debugPrint('[BlackBoxRecorder] ❌ No cameras available for snapshots');
+      debugPrint('[BlackBoxRecorder] No cameras available for snapshots');
       return;
     }
 
@@ -163,23 +163,23 @@ class BlackBoxRecorderService {
             if (useFront) {
               frontCount++;
               debugPrint(
-                '[BlackBoxRecorder] ✅ Front camera snapshot #$frontCount captured',
+                '[BlackBoxRecorder] Front camera snapshot #$frontCount captured',
               );
             } else {
               rearCount++;
               debugPrint(
-                '[BlackBoxRecorder] ✅ Rear camera snapshot #$rearCount captured',
+                '[BlackBoxRecorder] Rear camera snapshot #$rearCount captured',
               );
             }
           } else {
             debugPrint(
-              '[BlackBoxRecorder] ⚠️ ${useFront ? 'Front' : 'Rear'} camera returned null (camera busy or unavailable)',
+              '[BlackBoxRecorder] ${useFront ? 'Front' : 'Rear'} camera returned null (camera busy or unavailable)',
             );
           }
         }
       } catch (e) {
         debugPrint(
-          '[BlackBoxRecorder] ❌ ${useFront ? 'Front' : 'Rear'} camera error: $e',
+          '[BlackBoxRecorder] ${useFront ? 'Front' : 'Rear'} camera error: $e',
         );
       }
 

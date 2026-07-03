@@ -28,7 +28,7 @@ class AppBackgroundService {
 
     final wasRunning = await service.isRunning();
     if (wasRunning) {
-      debugPrint('⚠️ [BG] Exista deja un service vechi, il opresc...');
+      debugPrint('[BG] Exista deja un service vechi, il opresc...');
 
       await Future.delayed(const Duration(seconds: 1));
     }
@@ -50,7 +50,7 @@ class AppBackgroundService {
 
   @pragma('vm:entry-point')
   static Future<void> _onStart(ServiceInstance service) async {
-    debugPrint('🔵 [BG] _onStart pornit (background service a început).');
+    debugPrint('[BG] _onStart pornit (background service a început).');
     if (service is AndroidServiceInstance) {
       service.setAsForegroundService();
     }
@@ -80,7 +80,7 @@ class AppBackgroundService {
 
     service.on('startAudio').listen((event) async {
       debugPrint(
-        '🟢 [BG] startAudio primit – pornesc AudioMonitorService în background.',
+        '[BG] startAudio primit – pornesc AudioMonitorService în background.',
       );
       if (audioMonitoring) return;
 
@@ -88,7 +88,7 @@ class AppBackgroundService {
 
       await AudioMonitorService.instance.startMonitoring(
         onAlert: (result) {
-          debugPrint('🚨 [BG] ALERTĂ AUDIO: $result');
+          debugPrint('[BG] ALERTĂ AUDIO: $result');
 
           if (service is AndroidServiceInstance) {
             service.setForegroundNotificationInfo(
@@ -104,7 +104,7 @@ class AppBackgroundService {
     });
 
     service.on('stopAudio').listen((event) async {
-      debugPrint('🛑 [BG] stopAudio primit – opresc AudioMonitorService.');
+      debugPrint('[BG] stopAudio primit – opresc AudioMonitorService.');
       if (!audioMonitoring) return;
       audioMonitoring = false;
       await AudioMonitorService.instance.stopMonitoring();
