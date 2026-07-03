@@ -49,3 +49,7 @@ app.*.map.json
 .env
 server/.env
 secrets.json
+
+# Node / JS related
+**/node_modules/
+
